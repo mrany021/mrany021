@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Term IV — Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --bg:#EEF1F4;
+    --surface:#FFFFFF;
+    --ink:#16213E;
+    --ink-soft:#3B4A6B;
+    --muted:#6B7280;
+    --border:#DCE1E8;
+    --brass:#B8863B;
+    --brass-soft:#F3E8D4;
+    --success:#2F6F4E;
+    --success-soft:#E3EFE8;
+    --danger:#A23B3B;
+    --danger-soft:#F3E2E1;
+    --shadow: 0 1px 2px rgba(22,33,62,0.06), 0 4px 16px rgba(22,33,62,0.05);
+
+    --c-MCA:#4A5FA5;      --c-MCA-soft:#E7EAF5;
+    --c-BDMDMA:#2F8F7A;   --c-BDMDMA-soft:#E1F1EC;
+    --c-MFSM:#B8863B;     --c-MFSM-soft:#F3E8D4;
+    --c-DDMA:#B4552F;     --c-DDMA-soft:#F5E5DD;
+    --c-FDB:#7A4FA0;      --c-FDB-soft:#EEE5F4;
+    --c-CSGB:#3D7A45;     --c-CSGB-soft:#E3EEE4;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    padding-bottom:48px;
+  }
+  .wrap{max-width:640px;margin:0 auto;padding:0 16px;}
+
+  header.top{
+    padding:28px 16px 18px;
+    max-width:640px;margin:0 auto;
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--brass);
+    font-weight:600;
+    margin-bottom:6px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-size:28px;
+    font-weight:600;
+    letter-spacing:-0.01em;
+    margin:0 0 4px;
+    color:var(--ink);
+  }
+  .sub{
+    font-size:13px;
+    color:var(--muted);
+    font-family:'JetBrains Mono',monospace;
+  }
+
+  .account-bar{
+    margin-top:12px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .signin-btn{
+    display:flex;align-items:center;gap:8px;
+    background:var(--ink);color:#fff;
+    border:none;border-radius:8px;
+    padding:8px 14px;
+    font-family:'Inter',sans-serif;font-size:13px;font-weight:600;
+    cursor:pointer;
+  }
+  .account-chip{
+    display:flex;align-items:center;gap:8px;
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:20px;padding:5px 12px 5px 5px;
+  }
+  .account-chip img{width:24px;height:24px;border-radius:50%;}
+  .account-chip .email{font-size:12px;color:var(--ink-soft);font-weight:600;}
+  .signout-link{
+    font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);
+    background:none;border:none;cursor:pointer;text-decoration:underline;
+  }
+  .sync-banner{
+    margin:0 16px 12px;
+    padding:8px 12px;
+    border-radius:8px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    text-align:center;
+  }
+  .sync-banner.ok{background:var(--success-soft);color:var(--success);}
+  .sync-banner.err{background:var(--danger-soft);color:var(--danger);}
+  .sync-banner.local{background:var(--brass-soft);color:var(--brass);}
+
+  .tabs{
+    display:flex;
+    gap:4px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:4px;
+    margin:18px 16px 16px;
+    max-width:608px;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .tab-btn{
+    flex:1;
+    border:none;
+    background:transparent;
+    padding:9px 8px;
+    font-family:'Inter',sans-serif;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--muted);
+    border-radius:7px;
+    cursor:pointer;
+    transition:all .15s ease;
+    white-space:nowrap;
+  }
+  .tab-btn.active{
+    background:var(--ink);
+    color:#fff;
+  }
+
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* ---- Next class banner ---- */
+  .banner{
+    margin:0 16px 20px;
+    background:var(--ink);
+    color:#fff;
+    border-radius:14px;
+    padding:18px 20px;
+    box-shadow:var(--shadow);
+    position:relative;
+    overflow:hidden;
+  }
+  .banner::before{
+    content:'';
+    position:absolute;
+    top:-30%;right:-10%;
+    width:140px;height:140px;
+    border-radius:50%;
+    background:rgba(184,134,59,0.18);
+  }
+  .banner .tag{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--brass);
+    font-weight:700;
+    margin-bottom:8px;
+  }
+  .banner .course-line{
+    font-family:'Fraunces',serif;
+    font-size:22px;
+    font-weight:600;
+    margin-bottom:4px;
+  }
+  .banner .meta-line{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    color:rgba(255,255,255,0.75);
+  }
+
+  /* ---- date group ---- */
+  .date-group{margin:0 16px 22px;}
+  .date-head{
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+    margin-bottom:8px;
+    padding-left:2px;
+  }
+  .date-head .d{
+    font-family:'Fraunces',serif;
+    font-size:16px;
+    font-weight:600;
+    color:var(--ink);
+  }
+  .date-head .w{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--muted);
+  }
+  .date-head.today .d{color:var(--brass);}
+  .date-head.today .d::after{
+    content:'TODAY';
+    font-family:'JetBrains Mono',monospace;
+    font-size:9px;
+    letter-spacing:0.1em;
+    background:var(--brass-soft);
+    color:var(--brass);
+    padding:2px 6px;
+    border-radius:4px;
+    margin-left:8px;
+    font-weight:700;
+    vertical-align:middle;
+  }
+
+  .session-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 12px;
+    margin-bottom:6px;
+  }
+  .session-row.past{opacity:0.92;}
+  .time-col{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    color:var(--ink-soft);
+    width:88px;
+    flex-shrink:0;
+    line-height:1.3;
+  }
+  .time-col .end{color:var(--muted);}
+  .pill{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    font-weight:700;
+    padding:3px 8px;
+    border-radius:6px;
+    white-space:nowrap;
+  }
+  .course-info{flex:1;min-width:0;}
+  .course-info .name{
+    font-size:13px;
+    font-weight:600;
+    color:var(--ink);
+    margin-bottom:2px;
+  }
+  .course-info .room{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--muted);
+  }
+  .course-info .topic{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:3px;
+    line-height:1.4;
+    cursor:pointer;
+  }
+  .prep-toggle{
+    color:var(--brass);
+    font-size:10.5px;
+    font-weight:600;
+    margin-left:4px;
+    white-space:nowrap;
+  }
+  .prep-detail{
+    display:none;
+    margin-top:8px;
+    padding:10px 12px;
+    background:var(--bg);
+    border-radius:8px;
+    border-left:3px solid var(--brass);
+  }
+  .prep-detail.open{display:block;}
+  .prep-label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--brass);
+    font-weight:700;
+    margin:6px 0 3px;
+  }
+  .prep-label:first-child{margin-top:0;}
+  .prep-list{
+    margin:0 0 4px;
+    padding-left:16px;
+    font-size:12px;
+    color:var(--ink-soft);
+    line-height:1.5;
+  }
+  .prep-list li{margin-bottom:3px;}
+  .prep-empty{font-size:12px;color:var(--muted);font-style:italic;}
+  .stamp-group{display:flex;gap:4px;flex-shrink:0;}
+  .stamp{
+    width:30px;height:30px;
+    border-radius:7px;
+    border:1.5px solid var(--border);
+    background:#fff;
+    font-family:'JetBrains Mono',monospace;
+    font-weight:700;
+    font-size:12px;
+    color:var(--muted);
+    cursor:pointer;
+    transition:transform .1s ease;
+  }
+  .stamp:active{transform:scale(0.92);}
+  .stamp.p.on{background:var(--success-soft);border-color:var(--success);color:var(--success);transform:rotate(-4deg);}
+  .stamp.a.on{background:var(--danger-soft);border-color:var(--danger);color:var(--danger);transform:rotate(3deg);}
+  .future-tag{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    color:var(--muted);
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+  }
+
+  /* ---- attendance view ---- */
+  .attn-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:16px 18px;
+    margin:0 16px 12px;
+    box-shadow:var(--shadow);
+  }
+  .attn-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+  .attn-name{font-family:'Fraunces',serif;font-size:17px;font-weight:600;}
+  .attn-code{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px;}
+  .attn-pct{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;}
+  .attn-pct.good{color:var(--success);}
+  .attn-pct.bad{color:var(--danger);}
+  .bar-track{
+    height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin-bottom:8px;position:relative;
+  }
+  .bar-fill{height:100%;border-radius:3px;transition:width .3s ease;}
+  .bar-track::after{
+    content:'';
+    position:absolute;left:75%;top:-2px;bottom:-2px;
+    width:2px;background:var(--ink-soft);opacity:0.35;
+  }
+  .attn-meta{
+    display:flex;justify-content:space-between;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;color:var(--muted);
+  }
+  .threshold-note{
+    font-size:10px;color:var(--muted);margin-top:6px;font-family:'JetBrains Mono',monospace;
+  }
+
+  .empty-note{
+    text-align:center;color:var(--muted);font-size:13px;padding:30px 16px;
+  }
+
+  /* ---- day-wise view ---- */
+  .day-selector{
+    display:flex;gap:6px;overflow-x:auto;padding:0 16px 14px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .day-chip{
+    flex-shrink:0;
+    border:1.5px solid var(--border);
+    background:var(--surface);
+    color:var(--ink-soft);
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    font-weight:600;
+    padding:8px 14px;
+    border-radius:20px;
+    cursor:pointer;
+  }
+  .day-chip.active{
+    background:var(--ink);border-color:var(--ink);color:#fff;
+  }
+  .section-label{
+    font-family:'Fraunces',serif;
+    font-size:15px;
+    font-weight:600;
+    margin:18px 16px 8px;
+    color:var(--ink);
+    display:flex;align-items:center;gap:8px;
+  }
+  .section-label .note{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    color:var(--muted);
+    font-weight:500;
+  }
+  .meal-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:12px 14px;
+    margin:0 16px 8px;
+  }
+  .meal-name{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--brass);
+    font-weight:700;
+    margin-bottom:6px;
+  }
+  .meal-items{font-size:13px;line-height:1.55;color:var(--ink-soft);}
+  .meal-items b{color:var(--ink);font-weight:600;}
+
+  /* ---- wholesome combined view ---- */
+  .day-meal-strip{
+    display:flex;gap:6px;overflow-x:auto;margin:0 0 10px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .meal-chip{
+    flex-shrink:0;
+    background:var(--brass-soft);
+    color:var(--brass);
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;
+    font-weight:700;
+    padding:5px 9px;
+    border-radius:6px;
+    white-space:nowrap;
+  }
+
+  /* ---- nutrition view ---- */
+  .nutri-summary{
+    margin:0 16px 16px;
+    background:var(--ink);
+    color:#fff;
+    border-radius:14px;
+    padding:18px 20px;
+    box-shadow:var(--shadow);
+  }
+  .nutri-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+  .nutri-row:last-child{margin-bottom:0;}
+  .nutri-label{font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,0.65);text-transform:uppercase;letter-spacing:0.08em;}
+  .nutri-value{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;}
+  .nutri-value .of{font-size:12px;color:rgba(255,255,255,0.55);font-weight:500;}
+  .nutri-value.over{color:#E8A9A9;}
+  .nutri-bar-track{height:6px;background:rgba(255,255,255,0.15);border-radius:3px;overflow:hidden;margin-top:6px;}
+  .nutri-bar-fill{height:100%;border-radius:3px;transition:width .3s ease;}
+
+  .food-item{
+    display:flex;align-items:center;gap:10px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 12px;
+    margin:0 16px 6px;
+  }
+  .food-check{
+    width:20px;height:20px;flex-shrink:0;
+    border-radius:6px;border:1.5px solid var(--border);
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    font-size:12px;color:transparent;
+    background:#fff;
+  }
+  .food-check.on{background:var(--success);border-color:var(--success);color:#fff;}
+  .food-name{flex:1;font-size:13px;font-weight:500;color:var(--ink);}
+  .food-macro{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);white-space:nowrap;}
+  .egg-stepper{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .egg-btn{
+    width:24px;height:24px;border-radius:6px;border:1.5px solid var(--border);
+    background:#fff;font-weight:700;color:var(--ink-soft);cursor:pointer;font-size:14px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .egg-count{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;width:16px;text-align:center;}
+
+  /* ---- insights view ---- */
+  .insight-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:16px 18px;
+    margin:0 16px 12px;
+    box-shadow:var(--shadow);
+  }
+  .insight-card h3{
+    font-family:'Fraunces',serif;
+    font-size:15px;
+    font-weight:600;
+    margin:0 0 10px;
+    color:var(--ink);
+  }
+  .insight-row{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:8px 0;border-bottom:1px solid var(--bg);
+  }
+  .insight-row:last-child{border-bottom:none;}
+  .insight-course{font-size:13px;font-weight:600;color:var(--ink);}
+  .insight-badge{
+    font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;
+    padding:3px 9px;border-radius:20px;
+  }
+  .badge-safe{background:var(--success-soft);color:var(--success);}
+  .badge-watch{background:var(--brass-soft);color:var(--brass);}
+  .badge-critical{background:var(--danger-soft);color:var(--danger);}
+  .insight-detail{font-size:12px;color:var(--muted);margin-top:2px;}
+  .insight-stat-row{display:flex;gap:12px;margin-bottom:10px;}
+  .insight-stat{flex:1;text-align:center;background:var(--bg);border-radius:10px;padding:10px 6px;}
+  .insight-stat .num{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:var(--ink);}
+  .insight-stat .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:2px;}
+  .insight-msg{font-size:13px;color:var(--ink-soft);line-height:1.5;padding:10px 0 0;}
+  .legend{
+    display:flex;gap:14px;justify-content:center;margin:4px 16px 18px;flex-wrap:wrap;
+  }
+  .legend span{
+    font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);
+    display:flex;align-items:center;gap:5px;
+  }
+  .legend .dot{width:8px;height:8px;border-radius:50%;}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="eyebrow">IIM Nagpur · PGP-1 · P25080</div>
+  <h1>Term IV Ledger</h1>
+  <div class="sub">Batch 2025–27 · 22 Jun – 04 Sep 2026</div>
+  <div id="account-bar" class="account-bar"></div>
+</header>
+
+<div id="sync-banner" class="sync-banner" style="display:none;"></div>
+
+<div class="tabs">
+  <button class="tab-btn active" data-view="schedule">Schedule</button>
+  <button class="tab-btn" data-view="wholesome">Wholesome</button>
+  <button class="tab-btn" data-view="nutrition">Nutrition</button>
+  <button class="tab-btn" data-view="attendance">Attendance</button>
+  <button class="tab-btn" data-view="insights">Insights</button>
+</div>
+
+<div class="legend">
+  <span><i class="dot" style="background:var(--c-MCA)"></i>MC-A</span>
+  <span><i class="dot" style="background:var(--c-BDMDMA)"></i>BDMDM-A</span>
+  <span><i class="dot" style="background:var(--c-MFSM)"></i>MFSM</span>
+  <span><i class="dot" style="background:var(--c-DDMA)"></i>DDM-A</span>
+  <span><i class="dot" style="background:var(--c-FDB)"></i>FD-B</span>
+  <span><i class="dot" style="background:var(--c-CSGB)"></i>CSG-B</span>
+</div>
+
+<div id="schedule-view" class="view active">
+  <div id="banner-slot"></div>
+  <div id="schedule-list"></div>
+</div>
+
+<div id="wholesome-view" class="view">
+  <div id="wholesome-list"></div>
+</div>
+
+<div id="nutrition-view" class="view">
+  <div class="day-selector" id="nutri-day-selector"></div>
+  <div id="nutri-summary"></div>
+  <div id="nutri-log"></div>
+</div>
+
+<div id="attendance-view" class="view">
+  <div id="attendance-list"></div>
+</div>
+
+<div id="insights-view" class="view">
+  <div id="insights-list"></div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIG — fill these in to go live with your own account + sheets.
+   Leave as-is to keep using local Claude-artifact storage only.
+   ============================================================ */
+const CONFIG = {
+  // From Firebase Console → Project Settings → General → Your apps → Web app
+  firebase: {
+    apiKey: "PASTE_YOUR_FIREBASE_API_KEY",
+    authDomain: "PASTE_YOUR_PROJECT.firebaseapp.com",
+    projectId: "PASTE_YOUR_PROJECT_ID",
+    storageBucket: "PASTE_YOUR_PROJECT.appspot.com",
+    messagingSenderId: "PASTE_SENDER_ID",
+    appId: "PASTE_APP_ID"
+  },
+  // File → Share → Publish to web → CSV, for each sheet
+  timetableCsvUrl: "",  // e.g. "https://docs.google.com/spreadsheets/d/e/.../pub?output=csv"
+  messMenuCsvUrl: ""    // same, for the mess menu sheet
+};
+
+const FIREBASE_ENABLED = CONFIG.firebase.apiKey !== "PASTE_YOUR_FIREBASE_API_KEY";
+let currentUser = null;
+let db = null;
+
+function showSyncBanner(msg, cls){
+  const b = document.getElementById('sync-banner');
+  b.textContent = msg;
+  b.className = 'sync-banner ' + cls;
+  b.style.display = 'block';
+}
+
+function initFirebase(){
+  if(!FIREBASE_ENABLED){
+    showSyncBanner('Running in local mode — no Firebase config set yet. See setup guide.', 'local');
+    renderAccountBar();
+    return;
+  }
+  firebase.initializeApp(CONFIG.firebase);
+  db = firebase.firestore();
+  firebase.auth().onAuthStateChanged(user=>{
+    currentUser = user;
+    renderAccountBar();
+    if(user){
+      // reload everything now that we know who's signed in
+      initAfterAuth();
+    }
+  });
+}
+
+function renderAccountBar(){
+  const bar = document.getElementById('account-bar');
+  if(!FIREBASE_ENABLED){
+    bar.innerHTML = '';
+    return;
+  }
+  if(currentUser){
+    bar.innerHTML = `
+      <div class="account-chip">
+        <img src="${currentUser.photoURL||''}" onerror="this.style.display='none'">
+        <span class="email">${currentUser.displayName||currentUser.email}</span>
+      </div>
+      <button class="signout-link" onclick="doSignOut()">sign out</button>`;
+  } else {
+    bar.innerHTML = `<button class="signin-btn" onclick="doSignIn()">Sign in with Google</button>`;
+  }
+}
+
+async function doSignIn(){
+  const provider = new firebase.auth.GoogleAuthProvider();
+  try{
+    await firebase.auth().signInWithPopup(provider);
+  }catch(e){
+    showSyncBanner('Sign-in failed: ' + e.message, 'err');
+  }
+}
+async function doSignOut(){
+  await firebase.auth().signOut();
+}
+window.doSignIn = doSignIn;
+window.doSignOut = doSignOut;
+
+/* ---- Firestore-backed data layer (falls back to window.storage when signed out) ---- */
+async function remoteGet(field){
+  if(!(FIREBASE_ENABLED && currentUser)) return null;
+  const doc = await db.collection('users').doc(currentUser.uid).get();
+  if(!doc.exists) return null;
+  return doc.data()[field] ?? null;
+}
+async function remoteSet(field, value){
+  if(!(FIREBASE_ENABLED && currentUser)) return;
+  await db.collection('users').doc(currentUser.uid).set({[field]: value}, {merge:true});
+}
+
+/* ---- Live sheet sync ---- */
+function csvToRows(csvText){
+  // minimal CSV parser handling quoted commas
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for(let i=0;i<csvText.length;i++){
+    const c = csvText[i];
+    if(inQuotes){
+      if(c === '"'){
+        if(csvText[i+1] === '"'){ field+='"'; i++; } else { inQuotes=false; }
+      } else field += c;
+    } else {
+      if(c === '"') inQuotes = true;
+      else if(c === ','){ row.push(field); field=''; }
+      else if(c === '\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+      else if(c === '\r'){ /* skip */ }
+      else field += c;
+    }
+  }
+  if(field.length || row.length){ row.push(field); rows.push(row); }
+  return rows;
+}
+
+const SLOT_TIMES = {1:["08:30","10:00"],2:["10:15","11:45"],3:["12:00","13:30"],4:["14:30","16:00"],5:["16:15","17:45"],6:["18:00","19:30"],7:["19:45","21:15"],8:["21:45","23:15"]};
+const SESSION_PATTERN = /([A-Z]{2,6}(?:-[A-Z])?)\/(\d+)\/(CR\s?\d+)/g;
+
+function parseTimetableCSV(csvText){
+  const rows = csvToRows(csvText);
+  const parsed = [];
+  for(const cells of rows){
+    if(cells.length < 4) continue;
+    const day = (cells[1]||'').trim();
+    const dateStr = (cells[2]||'').trim();
+    if(!day || !dateStr) continue;
+    const d = new Date(dateStr.replace(/(\d+)[- ]([A-Za-z]+)[- ](\d+)/, '$2 $1, $3'));
+    if(isNaN(d)) continue;
+    const iso = d.toISOString().slice(0,10);
+    for(let slot=1; slot<=8; slot++){
+      const cell = cells[3+slot-1] || '';
+      let m;
+      SESSION_PATTERN.lastIndex = 0;
+      while((m = SESSION_PATTERN.exec(cell)) !== null){
+        const [, course, sessionNo, room] = m;
+        if(!TRACKED_COURSES.includes(course)) continue;
+        const [start,end] = SLOT_TIMES[slot] || ["",""];
+        parsed.push({week:"", day, date:dateStr, slot, start, end, course, session_no:parseInt(sessionNo), room:room.replace(/\s/g,''), iso});
+      }
+    }
+  }
+  return parsed;
+}
+
+function parseMessMenuCSV(csvText){
+  // Expects same shape as the original sheet: Meal | Item | Mon..Sun rows
+  const rows = csvToRows(csvText);
+  const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  const menu = {}; days.forEach(d=>menu[d]={});
+  for(const cells of rows){
+    if(cells.length < 9) continue;
+    const meal = (cells[0]||'').trim();
+    const cat = (cells[1]||'').trim();
+    if(!meal || !cat || meal==='Meal') continue;
+    for(let i=0;i<7;i++){
+      const val = (cells[2+i]||'').trim();
+      if(!menu[days[i]][meal]) menu[days[i]][meal] = {};
+      menu[days[i]][meal][cat] = val || '—';
+    }
+  }
+  return menu;
+}
+
+async function trySyncFromSheets(){
+  if(!CONFIG.timetableCsvUrl && !CONFIG.messMenuCsvUrl){
+    return; // no URLs configured — stick with baked-in data
+  }
+  try{
+    if(CONFIG.timetableCsvUrl){
+      const res = await fetch(CONFIG.timetableCsvUrl);
+      const text = await res.text();
+      const fresh = parseTimetableCSV(text);
+      if(fresh.length > 0){
+        SESSIONS.length = 0;
+        SESSIONS.push(...fresh.sort((a,b)=> a.iso.localeCompare(b.iso) || a.slot-b.slot));
+      }
+    }
+    if(CONFIG.messMenuCsvUrl){
+      const res2 = await fetch(CONFIG.messMenuCsvUrl);
+      const text2 = await res2.text();
+      const freshMenu = parseMessMenuCSV(text2);
+      if(Object.keys(freshMenu).length){
+        Object.keys(MESS_MENU).forEach(k=>delete MESS_MENU[k]);
+        Object.assign(MESS_MENU, freshMenu);
+      }
+    }
+    showSyncBanner('Synced live from your Google Sheets ✓', 'ok');
+  }catch(e){
+    showSyncBanner('Could not reach live sheets — showing last saved data.', 'err');
+  }
+}
+
+const SESSIONS = [{"week": "1", "day": "Tue", "date": "23-Jun-2026", "slot": 2, "start": "10:15", "end": "11:45", "course": "DDM-A", "session_no": 1, "room": "CR01", "iso": "2026-06-23"}, {"week": "1", "day": "Tue", "date": "23-Jun-2026", "slot": 4, "start": "14:30", "end": "16:00", "course": "BDMDM-A", "session_no": 1, "room": "CR06", "iso": "2026-06-23"}, {"week": "1", "day": "Tue", "date": "23-Jun-2026", "slot": 6, "start": "18:00", "end": "19:30", "course": "CSG-B", "session_no": 1, "room": "CR02", "iso": "2026-06-23"}, {"week": "1", "day": "Wed", "date": "24-Jun-2026", "slot": 2, "start": "10:15", "end": "11:45", "course": "FD-B", "session_no": 1, "room": "CR06", "iso": "2026-06-24"}, {"week": "1", "day": "Wed", "date": "24-Jun-2026", "slot": 6, "start": "18:00", "end": "19:30", "course": "MC-A", "session_no": 1, "room": "CR05", "iso": "2026-06-24"}, {"week": "1", "day": "Thur", "date": "25-Jun-2026", "slot": 4, "start": "14:30", "end": "16:00", "course": "BDMDM-A", "session_no": 2, "room": "CR06", "iso": "2026-06-25"}, {"week": "1", "day": "Thur", "date": "25-Jun-2026", "slot": 5, "start": "16:15", "end": "17:45", "course": "DDM-A", "session_no": 2, "room": "CR01", "iso": "2026-06-25"}, {"week": "1", "day": "Sun", "date": "28-Jun-2026", "slot": 2, "start": "10:15", "end": "11:45", "course": "MFSM", "session_no": 1, "room": "CR02", "iso": "2026-06-28"}, {"week": "1", "day": "Sun", "date": "28-Jun-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "MFSM", "session_no": 2, "room": "CR02", "iso": "2026-06-28"}, {"week": "2", "day": "Mon", "date": "29-Jun-2026", "slot": 2, "start": "10:15", "end": "11:45", "course": "MC-A", "session_no": 2, "room": "CR05", "iso": "2026-06-29"}, {"week": "2", "day": "Mon", "date": "29-Jun-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "FD-B", "session_no": 2, "room": "CR06", "iso": "2026-06-29"}, {"week": "2", "day": "Tue", "date": "30-Jun-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "DDM-A", "session_no": 3, "room": "CR01", "iso": "2026-06-30"}, {"week": "2", "day": "Tue", "date": "30-Jun-2026", "slot": 5, "start": "16:15", "end": "17:45", "course": "BDMDM-A", "session_no": 3, "room": "CR06", "iso": "2026-06-30"}, {"week": "2", "day": "Wed", "date": "01-Jul-2026", "slot": 2, "start": "10:15", "end": "11:45", "course": "FD-B", "session_no": 3, "room": "CR06", "iso": "2026-07-01"}, {"week": "2", "day": "Wed", "date": "01-Jul-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "MFSM", "session_no": 3, "room": "CR02", "iso": "2026-07-01"}, {"week": "2", "day": "Wed", "date": "01-Jul-2026", "slot": 6, "start": "18:00", "end": "19:30", "course": "MC-A", "session_no": 3, "room": "CR05", "iso": "2026-07-01"}, {"week": "2", "day": "Thur", "date": "02-Jul-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "MFSM", "session_no": 4, "room": "CR02", "iso": "2026-07-02"}, {"week": "2", "day": "Thur", "date": "02-Jul-2026", "slot": 4, "start": "14:30", "end": "16:00", "course": "BDMDM-A", "session_no": 4, "room": "CR06", "iso": "2026-07-02"}, {"week": "2", "day": "Thur", "date": "02-Jul-2026", "slot": 5, "start": "16:15", "end": "17:45", "course": "DDM-A", "session_no": 4, "room": "CR03", "iso": "2026-07-02"}, {"week": "2", "day": "Fri", "date": "03-Jul-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "CSG-B", "session_no": 2, "room": "CR02", "iso": "2026-07-03"}, {"week": "2", "day": "Sat", "date": "04-Jul-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "CSG-B", "session_no": 3, "room": "CR02", "iso": "2026-07-04"}, {"week": "2", "day": "Sat", "date": "04-Jul-2026", "slot": 4, "start": "14:30", "end": "16:00", "course": "BDMDM-Tutorial", "session_no": null, "room": "CR02", "iso": "2026-07-04"}, {"week": "2", "day": "Sat", "date": "04-Jul-2026", "slot": 5, "start": "16:15", "end": "17:45", "course": "DDM-Tutorial", "session_no": null, "room": "CR03", "iso": "2026-07-04"}, {"week": "3", "day": "Mon", "date": "06-Jul-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "FD-B", "session_no": 4, "room": "CR06", "iso": "2026-07-06"}, {"week": "3", "day": "Tue", "date": "07-Jul-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "CSG-B", "session_no": 4, "room": "CR02", "iso": "2026-07-07"}, {"week": "3", "day": "Wed", "date": "08-Jul-2026", "slot": 2, "start": "10:15", "end": "11:45", "course": "MC-A", "session_no": 4, "room": "CR05", "iso": "2026-07-08"}, {"week": "3", "day": "Wed", "date": "08-Jul-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "FD-B", "session_no": 5, "room": "CR06", "iso": "2026-07-08"}, {"week": "3", "day": "Thur", "date": "09-Jul-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "MFSM", "session_no": 5, "room": "CR02", "iso": "2026-07-09"}, {"week": "3", "day": "Fri", "date": "10-Jul-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "CSG-B", "session_no": 5, "room": "CR02", "iso": "2026-07-10"}, {"week": "4", "day": "Mon", "date": "13-Jul-2026", "slot": 2, "start": "10:15", "end": "11:45", "course": "MC-A", "session_no": 5, "room": "CR05", "iso": "2026-07-13"}, {"week": "4", "day": "Mon", "date": "13-Jul-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "FD-B", "session_no": 6, "room": "CR06", "iso": "2026-07-13"}, {"week": "4", "day": "Tue", "date": "14-Jul-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "DDM-A", "session_no": 5, "room": "CR03", "iso": "2026-07-14"}, {"week": "4", "day": "Tue", "date": "14-Jul-2026", "slot": 5, "start": "16:15", "end": "17:45", "course": "BDMDM-A", "session_no": 5, "room": "CR06", "iso": "2026-07-14"}, {"week": "4", "day": "Wed", "date": "15-Jul-2026", "slot": 2, "start": "10:15", "end": "11:45", "course": "FD-B", "session_no": 7, "room": "CR06", "iso": "2026-07-15"}, {"week": "4", "day": "Wed", "date": "15-Jul-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "MFSM", "session_no": 6, "room": "CR02", "iso": "2026-07-15"}, {"week": "4", "day": "Wed", "date": "15-Jul-2026", "slot": 4, "start": "14:30", "end": "16:00", "course": "CSG-B", "session_no": 6, "room": "CR02", "iso": "2026-07-15"}, {"week": "4", "day": "Wed", "date": "15-Jul-2026", "slot": 6, "start": "18:00", "end": "19:30", "course": "MC-A", "session_no": 6, "room": "CR05", "iso": "2026-07-15"}, {"week": "4", "day": "Thur", "date": "16-Jul-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "MFSM", "session_no": 7, "room": "CR02", "iso": "2026-07-16"}, {"week": "4", "day": "Thur", "date": "16-Jul-2026", "slot": 4, "start": "14:30", "end": "16:00", "course": "BDMDM-A", "session_no": 6, "room": "CR06", "iso": "2026-07-16"}, {"week": "4", "day": "Thur", "date": "16-Jul-2026", "slot": 5, "start": "16:15", "end": "17:45", "course": "DDM-A", "session_no": 6, "room": "CR03", "iso": "2026-07-16"}, {"week": "4", "day": "Fri", "date": "17-Jul-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "CSG-B", "session_no": 7, "room": "CR02", "iso": "2026-07-17"}, {"week": "5", "day": "Mon", "date": "20-Jul-2026", "slot": 2, "start": "10:15", "end": "11:45", "course": "MC-A", "session_no": 7, "room": "CR05", "iso": "2026-07-20"}, {"week": "5", "day": "Mon", "date": "20-Jul-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "FD-B", "session_no": 8, "room": "CR06", "iso": "2026-07-20"}, {"week": "5", "day": "Tue", "date": "21-Jul-2026", "slot": 1, "start": "08:30", "end": "10:00", "course": "CSG-B", "session_no": 8, "room": "CR02", "iso": "2026-07-21"}, {"week": "5", "day": "Tue", "date": "21-Jul-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "DDM-A", "session_no": 7, "room": "CR03", "iso": "2026-07-21"}, {"week": "5", "day": "Tue", "date": "21-Jul-2026", "slot": 5, "start": "16:15", "end": "17:45", "course": "BDMDM-A", "session_no": 7, "room": "CR06", "iso": "2026-07-21"}, {"week": "5", "day": "Wed", "date": "22-Jul-2026", "slot": 2, "start": "10:15", "end": "11:45", "course": "FD-B", "session_no": 9, "room": "CR06", "iso": "2026-07-22"}, {"week": "5", "day": "Wed", "date": "22-Jul-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "MFSM", "session_no": 8, "room": "CR02", "iso": "2026-07-22"}, {"week": "5", "day": "Wed", "date": "22-Jul-2026", "slot": 6, "start": "18:00", "end": "19:30", "course": "MC-A", "session_no": 8, "room": "CR05", "iso": "2026-07-22"}, {"week": "5", "day": "Thur", "date": "23-Jul-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "MFSM", "session_no": 9, "room": "CR02", "iso": "2026-07-23"}, {"week": "5", "day": "Thur", "date": "23-Jul-2026", "slot": 4, "start": "14:30", "end": "16:00", "course": "BDMDM-A", "session_no": 8, "room": "CR06", "iso": "2026-07-23"}, {"week": "5", "day": "Thur", "date": "23-Jul-2026", "slot": 5, "start": "16:15", "end": "17:45", "course": "DDM-A", "session_no": 8, "room": "CR03", "iso": "2026-07-23"}, {"week": "6", "day": "Mon", "date": "27-Jul-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "FD-B", "session_no": 10, "room": "CR06", "iso": "2026-07-27"}, {"week": "6", "day": "Tue", "date": "28-Jul-2026", "slot": 1, "start": "08:30", "end": "10:00", "course": "DDM-A", "session_no": 9, "room": "CR03", "iso": "2026-07-28"}, {"week": "6", "day": "Tue", "date": "28-Jul-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "CSG-B", "session_no": 9, "room": "CR02", "iso": "2026-07-28"}, {"week": "6", "day": "Tue", "date": "28-Jul-2026", "slot": 4, "start": "14:30", "end": "16:00", "course": "BDMDM-A", "session_no": 9, "room": "CR06", "iso": "2026-07-28"}, {"week": "6", "day": "Wed", "date": "29-Jul-2026", "slot": 2, "start": "10:15", "end": "11:45", "course": "FD-B", "session_no": 11, "room": "CR06", "iso": "2026-07-29"}, {"week": "6", "day": "Wed", "date": "29-Jul-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "MFSM", "session_no": 10, "room": "CR02", "iso": "2026-07-29"}, {"week": "6", "day": "Wed", "date": "29-Jul-2026", "slot": 6, "start": "18:00", "end": "19:30", "course": "MC-A", "session_no": 9, "room": "CR05", "iso": "2026-07-29"}, {"week": "6", "day": "Thur", "date": "30-Jul-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "MFSM", "session_no": 11, "room": "CR02", "iso": "2026-07-30"}, {"week": "6", "day": "Thur", "date": "30-Jul-2026", "slot": 4, "start": "14:30", "end": "16:00", "course": "BDMDM-A", "session_no": 10, "room": "CR06", "iso": "2026-07-30"}, {"week": "6", "day": "Thur", "date": "30-Jul-2026", "slot": 5, "start": "16:15", "end": "17:45", "course": "DDM-A", "session_no": 10, "room": "CR03", "iso": "2026-07-30"}, {"week": "6", "day": "Fri", "date": "31-Jul-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "CSG-B", "session_no": 10, "room": "CR02", "iso": "2026-07-31"}, {"week": "6", "day": "Fri", "date": "31-Jul-2026", "slot": 4, "start": "14:30", "end": "16:00", "course": "MC-A", "session_no": 10, "room": "CR05", "iso": "2026-07-31"}, {"week": "6", "day": "Sat", "date": "01-Aug-2026", "slot": 1, "start": "08:30", "end": "10:00", "course": "DDM-MidTermExam", "session_no": null, "room": "CR01-06", "iso": "2026-08-01"}, {"week": "6", "day": "Sat", "date": "01-Aug-2026", "slot": 2, "start": "10:15", "end": "11:45", "course": "DDM-MidTermExam", "session_no": null, "room": "CR01-06", "iso": "2026-08-01"}, {"week": "6", "day": "Sat", "date": "01-Aug-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "DDM-MidTermExam", "session_no": null, "room": "CR01-06", "iso": "2026-08-01"}, {"week": "7", "day": "Mon", "date": "03-Aug-2026", "slot": 2, "start": "10:15", "end": "11:45", "course": "MC-A", "session_no": 11, "room": "CR05", "iso": "2026-08-03"}, {"week": "7", "day": "Mon", "date": "03-Aug-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "FD-B", "session_no": 12, "room": "CR06", "iso": "2026-08-03"}, {"week": "7", "day": "Tue", "date": "04-Aug-2026", "slot": 1, "start": "08:30", "end": "10:00", "course": "CSG-B", "session_no": 11, "room": "CR02", "iso": "2026-08-04"}, {"week": "7", "day": "Tue", "date": "04-Aug-2026", "slot": 6, "start": "18:00", "end": "19:30", "course": "DDM-A", "session_no": 11, "room": "CR03", "iso": "2026-08-04"}, {"week": "7", "day": "Wed", "date": "05-Aug-2026", "slot": 2, "start": "10:15", "end": "11:45", "course": "FD-B", "session_no": 13, "room": "CR06", "iso": "2026-08-05"}, {"week": "7", "day": "Wed", "date": "05-Aug-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "MFSM", "session_no": 12, "room": "CR02", "iso": "2026-08-05"}, {"week": "7", "day": "Wed", "date": "05-Aug-2026", "slot": 6, "start": "18:00", "end": "19:30", "course": "MC-A", "session_no": 12, "room": "CR05", "iso": "2026-08-05"}, {"week": "7", "day": "Thur", "date": "06-Aug-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "MFSM", "session_no": 13, "room": "CR02", "iso": "2026-08-06"}, {"week": "7", "day": "Thur", "date": "06-Aug-2026", "slot": 4, "start": "14:30", "end": "16:00", "course": "BDMDM-A", "session_no": 11, "room": "CR06", "iso": "2026-08-06"}, {"week": "7", "day": "Thur", "date": "06-Aug-2026", "slot": 5, "start": "16:15", "end": "17:45", "course": "DDM-A", "session_no": 12, "room": "CR03", "iso": "2026-08-06"}, {"week": "7", "day": "Fri", "date": "07-Aug-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "CSG-B", "session_no": 12, "room": "CR02", "iso": "2026-08-07"}, {"week": "7", "day": "Sat", "date": "08-Aug-2026", "slot": 4, "start": "14:30", "end": "16:00", "course": "BDMDM-A", "session_no": 12, "room": "CR06", "iso": "2026-08-08"}, {"week": "8", "day": "Mon", "date": "10-Aug-2026", "slot": 2, "start": "10:15", "end": "11:45", "course": "MC-A", "session_no": 13, "room": "CR05", "iso": "2026-08-10"}, {"week": "8", "day": "Mon", "date": "10-Aug-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "FD-B", "session_no": 14, "room": "CR06", "iso": "2026-08-10"}, {"week": "8", "day": "Tue", "date": "11-Aug-2026", "slot": 1, "start": "08:30", "end": "10:00", "course": "DDM-A", "session_no": 13, "room": "CR03", "iso": "2026-08-11"}, {"week": "8", "day": "Tue", "date": "11-Aug-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "CSG-B", "session_no": 13, "room": "CR02", "iso": "2026-08-11"}, {"week": "8", "day": "Tue", "date": "11-Aug-2026", "slot": 4, "start": "14:30", "end": "16:00", "course": "BDMDM-A", "session_no": 13, "room": "CR06", "iso": "2026-08-11"}, {"week": "8", "day": "Wed", "date": "12-Aug-2026", "slot": 2, "start": "10:15", "end": "11:45", "course": "FD-B", "session_no": 15, "room": "CR06", "iso": "2026-08-12"}, {"week": "8", "day": "Wed", "date": "12-Aug-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "MFSM", "session_no": 14, "room": "CR02", "iso": "2026-08-12"}, {"week": "8", "day": "Wed", "date": "12-Aug-2026", "slot": 6, "start": "18:00", "end": "19:30", "course": "MC-A", "session_no": 14, "room": "CR05", "iso": "2026-08-12"}, {"week": "8", "day": "Thur", "date": "13-Aug-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "MFSM", "session_no": 15, "room": "CR02", "iso": "2026-08-13"}, {"week": "8", "day": "Thur", "date": "13-Aug-2026", "slot": 4, "start": "14:30", "end": "16:00", "course": "BDMDM-A", "session_no": 14, "room": "CR06", "iso": "2026-08-13"}, {"week": "8", "day": "Thur", "date": "13-Aug-2026", "slot": 5, "start": "16:15", "end": "17:45", "course": "DDM-A", "session_no": 14, "room": "CR03", "iso": "2026-08-13"}, {"week": "8", "day": "Fri", "date": "14-Aug-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "CSG-B", "session_no": 14, "room": "CR02", "iso": "2026-08-14"}, {"week": "9", "day": "Mon", "date": "17-Aug-2026", "slot": 2, "start": "10:15", "end": "11:45", "course": "MC-A", "session_no": 15, "room": "CR05", "iso": "2026-08-17"}, {"week": "9", "day": "Mon", "date": "17-Aug-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "FD-B", "session_no": 16, "room": "CR06", "iso": "2026-08-17"}, {"week": "9", "day": "Tue", "date": "18-Aug-2026", "slot": 1, "start": "08:30", "end": "10:00", "course": "CSG-B", "session_no": 15, "room": "CR02", "iso": "2026-08-18"}, {"week": "9", "day": "Tue", "date": "18-Aug-2026", "slot": 4, "start": "14:30", "end": "16:00", "course": "BDMDM-A", "session_no": 15, "room": "CR06", "iso": "2026-08-18"}, {"week": "9", "day": "Tue", "date": "18-Aug-2026", "slot": 6, "start": "18:00", "end": "19:30", "course": "DDM-A", "session_no": 15, "room": "CR03", "iso": "2026-08-18"}, {"week": "9", "day": "Wed", "date": "19-Aug-2026", "slot": 2, "start": "10:15", "end": "11:45", "course": "FD-B", "session_no": 17, "room": "CR06", "iso": "2026-08-19"}, {"week": "9", "day": "Wed", "date": "19-Aug-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "MFSM", "session_no": 16, "room": "CR02", "iso": "2026-08-19"}, {"week": "9", "day": "Wed", "date": "19-Aug-2026", "slot": 6, "start": "18:00", "end": "19:30", "course": "MC-A", "session_no": 16, "room": "CR05", "iso": "2026-08-19"}, {"week": "9", "day": "Thur", "date": "20-Aug-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "MFSM", "session_no": 17, "room": "CR02", "iso": "2026-08-20"}, {"week": "9", "day": "Thur", "date": "20-Aug-2026", "slot": 4, "start": "14:30", "end": "16:00", "course": "BDMDM-A", "session_no": 16, "room": "CR06", "iso": "2026-08-20"}, {"week": "9", "day": "Thur", "date": "20-Aug-2026", "slot": 5, "start": "16:15", "end": "17:45", "course": "DDM-A", "session_no": 16, "room": "CR03", "iso": "2026-08-20"}, {"week": "9", "day": "Fri", "date": "21-Aug-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "CSG-B", "session_no": 16, "room": "CR02", "iso": "2026-08-21"}, {"week": "10", "day": "Mon", "date": "24-Aug-2026", "slot": 2, "start": "10:15", "end": "11:45", "course": "MC-A", "session_no": 17, "room": "CR05", "iso": "2026-08-24"}, {"week": "10", "day": "Mon", "date": "24-Aug-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "FD-B", "session_no": 18, "room": "CR06", "iso": "2026-08-24"}, {"week": "10", "day": "Tue", "date": "25-Aug-2026", "slot": 1, "start": "08:30", "end": "10:00", "course": "DDM-A", "session_no": 17, "room": "CR03", "iso": "2026-08-25"}, {"week": "10", "day": "Tue", "date": "25-Aug-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "CSG-B", "session_no": 17, "room": "CR02", "iso": "2026-08-25"}, {"week": "10", "day": "Tue", "date": "25-Aug-2026", "slot": 5, "start": "16:15", "end": "17:45", "course": "BDMDM-A", "session_no": 17, "room": "CR06", "iso": "2026-08-25"}, {"week": "10", "day": "Thur", "date": "27-Aug-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "MFSM", "session_no": 18, "room": "CR02", "iso": "2026-08-27"}, {"week": "10", "day": "Thur", "date": "27-Aug-2026", "slot": 4, "start": "14:30", "end": "16:00", "course": "BDMDM-A", "session_no": 18, "room": "CR06", "iso": "2026-08-27"}, {"week": "10", "day": "Thur", "date": "27-Aug-2026", "slot": 5, "start": "16:15", "end": "17:45", "course": "DDM-A", "session_no": 18, "room": "CR03", "iso": "2026-08-27"}, {"week": "10", "day": "Fri", "date": "28-Aug-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "CSG-B", "session_no": 18, "room": "CR02", "iso": "2026-08-28"}, {"week": "10", "day": "Fri", "date": "28-Aug-2026", "slot": 4, "start": "14:30", "end": "16:00", "course": "MC-A", "session_no": 18, "room": "CR05", "iso": "2026-08-28"}, {"week": "11", "day": "Mon", "date": "31-Aug-2026", "slot": 2, "start": "10:15", "end": "11:45", "course": "MC-A", "session_no": 19, "room": "CR05", "iso": "2026-08-31"}, {"week": "11", "day": "Mon", "date": "31-Aug-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "FD-B", "session_no": 19, "room": "CR06", "iso": "2026-08-31"}, {"week": "11", "day": "Tue", "date": "01-Sep-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "CSG-B", "session_no": 19, "room": "CR02", "iso": "2026-09-01"}, {"week": "11", "day": "Tue", "date": "01-Sep-2026", "slot": 5, "start": "16:15", "end": "17:45", "course": "BDMDM-A", "session_no": 19, "room": "CR06", "iso": "2026-09-01"}, {"week": "11", "day": "Wed", "date": "02-Sep-2026", "slot": 2, "start": "10:15", "end": "11:45", "course": "FD-B", "session_no": 20, "room": "CR06", "iso": "2026-09-02"}, {"week": "11", "day": "Wed", "date": "02-Sep-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "MFSM", "session_no": 19, "room": "CR02", "iso": "2026-09-02"}, {"week": "11", "day": "Wed", "date": "02-Sep-2026", "slot": 6, "start": "18:00", "end": "19:30", "course": "MC-A", "session_no": 20, "room": "CR05", "iso": "2026-09-02"}, {"week": "11", "day": "Thur", "date": "03-Sep-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "MFSM", "session_no": 20, "room": "CR02", "iso": "2026-09-03"}, {"week": "11", "day": "Thur", "date": "03-Sep-2026", "slot": 4, "start": "14:30", "end": "16:00", "course": "BDMDM-A", "session_no": 20, "room": "CR06", "iso": "2026-09-03"}, {"week": "11", "day": "Thur", "date": "03-Sep-2026", "slot": 5, "start": "16:15", "end": "17:45", "course": "DDM-A", "session_no": 19, "room": "CR03", "iso": "2026-09-03"}, {"week": "11", "day": "Fri", "date": "04-Sep-2026", "slot": 3, "start": "12:00", "end": "13:30", "course": "CSG-B", "session_no": 20, "room": "CR02", "iso": "2026-09-04"}];
+const MESS_MENU = {"Monday": {"Breakfast": {"Main": "Tarri Poha", "Add-on": "Pyaaz, Bareek Sev, Lemon", "Sandwich/Salad": "Veg Sandwich", "Egg": "Boiled / Omelette / Half-Fried"}, "Lunch": {"Gravy": "Malai Kofta Gravy", "Dry": "Soya Chilli Dry", "Dal": "Arhar Dal", "Rice": "Green Peas Rice", "Roti": "Roti", "Curd": "Plain Curd"}, "Snacks": {"Main": "Bhel Puri"}, "Dinner": {"Gravy": "Pindi Chole", "Dry": "Honey Chilli Potato", "Dal": "Navaratna Dal", "Rice": "Fried Rice", "Roti": "Roti", "Dessert": "\u2014"}}, "Tuesday": {"Breakfast": {"Main": "Sewai Upma", "Add-on": "Coconut chutney", "Sandwich/Salad": "Chick Peas Salad", "Egg": "Boiled / Omelette / Half-Fried"}, "Lunch": {"Gravy": "Rajma", "Dry": "Aloo Jeera", "Dal": "Palak Dal", "Rice": "Plain Rice", "Roti": "Roti", "Curd": "Plain Curd"}, "Snacks": {"Main": "Chilli Idli"}, "Dinner": {"Gravy": "Methi Matar Malai", "Dry": "Mattar Gajjar", "Dal": "Dal Fry with Butter", "Rice": "Mint Rice", "Roti": "Paratha", "Dessert": "\u2014"}}, "Wednesday": {"Breakfast": {"Main": "Idli & Medu Vada", "Add-on": "Sambhar & Coconut Chutney", "Sandwich/Salad": "Sprouts", "Egg": "Boiled / Omelette / Half-Fried"}, "Lunch": {"Gravy": "Corn Palak", "Dry": "Suran Masala Dry", "Dal": "Dal Fry", "Rice": "Jeera Rice", "Roti": "Roti", "Curd": "Plain Curd"}, "Snacks": {"Main": "Punugulu"}, "Dinner": {"Gravy": "Chicken Tikka Masala", "Dry": "Shahi Paneer", "Dal": "Arhar Dal", "Rice": "Plain Rice", "Roti": "Roti", "Dessert": "Fruit Custard"}}, "Thursday": {"Breakfast": {"Main": "Mix Veg Paratha", "Add-on": "Coriander Chutney", "Sandwich/Salad": "Corn Sandwich", "Egg": "Boiled / Omelette / Half-Fried"}, "Lunch": {"Gravy": "Aloo Soya Gravy", "Dry": "Mix Sprout Masala", "Dal": "Dal Makhani", "Rice": "Plain Rice", "Roti": "Roti", "Curd": "Plain Curd"}, "Snacks": {"Main": "Papdi Chat"}, "Dinner": {"Gravy": "Kadhai Veg Roasted", "Dry": "Patta Gobhi Matar", "Dal": "Dal Makhani", "Rice": "Jeera Rice", "Roti": "Roti", "Dessert": "\u2014"}}, "Friday": {"Breakfast": {"Main": "Uttapam", "Add-on": "Tomato Chutney", "Sandwich/Salad": "Sprouts", "Egg": "Boiled / Omelette / Half-Fried"}, "Lunch": {"Gravy": "White Vatana", "Dry": "Mix Veg", "Dal": "Dal Tadka", "Rice": "Dhaniya Rice", "Roti": "Roti", "Curd": "Plain Curd"}, "Snacks": {"Main": "Red/White Sauce Pasta"}, "Dinner": {"Gravy": "Egg Kolhapuri", "Dry": "Paneer Kolhapuri", "Dal": "Dalcha", "Rice": "Plain Rice", "Roti": "Roti", "Dessert": "Rice Kheer"}}, "Saturday": {"Breakfast": {"Main": "Masala Puri and Aloo Sabzi", "Add-on": "\u2014", "Sandwich/Salad": "Coleslaw Sandwich", "Egg": "Boiled / Omelette / Half-Fried"}, "Lunch": {"Gravy": "Kathal do Pyaza", "Dry": "Aloo Parwal", "Dal": "Dalcha", "Rice": "Jeera Rice", "Roti": "Roti", "Curd": "Raita"}, "Snacks": {"Main": "Vada Pav"}, "Dinner": {"Gravy": "Veg Keema Gravy", "Dry": "Aloo Matar Tamatar", "Dal": "Dal Hareli", "Rice": "Jeera Rice", "Roti": "Roti", "Dessert": "\u2014"}}, "Sunday": {"Breakfast": {"Main": "Masala Dosa", "Add-on": "Sambar & Coconut Chutney", "Sandwich/Salad": "Sprouts", "Egg": "Boiled / Omelette / Half-Fried"}, "Lunch": {"Gravy": "Chana Masala", "Dry": "Veg Korma", "Dal": "Plain Dal", "Rice": "Masala Bhat", "Roti": "Roti", "Curd": "Plain Curd"}, "Snacks": {"Main": "Samosa"}, "Dinner": {"Gravy": "Chicken Dum Biryani", "Dry": "Veg Biryani", "Dal": "Paneer Butter Masala", "Rice": "\u2014", "Roti": "Roti", "Dessert": "Rasagulla"}}};
+const DAY_PATTERN = {"Tuesday": [{"slot": 1, "start": "08:30", "end": "10:00", "course": "CSG-B", "room": "CR02", "occurrences": 3}, {"slot": 2, "start": "10:15", "end": "11:45", "course": "DDM-A", "room": "CR01", "occurrences": 1}, {"slot": 3, "start": "12:00", "end": "13:30", "course": "CSG-B", "room": "CR02", "occurrences": 5}, {"slot": 4, "start": "14:30", "end": "16:00", "course": "BDMDM-A", "room": "CR06", "occurrences": 4}, {"slot": 5, "start": "16:15", "end": "17:45", "course": "BDMDM-A", "room": "CR06", "occurrences": 5}, {"slot": 6, "start": "18:00", "end": "19:30", "course": "DDM-A", "room": "CR03", "occurrences": 2}], "Wednesday": [{"slot": 2, "start": "10:15", "end": "11:45", "course": "FD-B", "room": "CR06", "occurrences": 9}, {"slot": 3, "start": "12:00", "end": "13:30", "course": "MFSM", "room": "CR02", "occurrences": 8}, {"slot": 4, "start": "14:30", "end": "16:00", "course": "CSG-B", "room": "CR02", "occurrences": 1}, {"slot": 6, "start": "18:00", "end": "19:30", "course": "MC-A", "room": "CR05", "occurrences": 9}], "Thursday": [{"slot": 3, "start": "12:00", "end": "13:30", "course": "MFSM", "room": "CR02", "occurrences": 10}, {"slot": 4, "start": "14:30", "end": "16:00", "course": "BDMDM-A", "room": "CR06", "occurrences": 10}, {"slot": 5, "start": "16:15", "end": "17:45", "course": "DDM-A", "room": "CR03", "occurrences": 10}], "Sunday": [{"slot": 2, "start": "10:15", "end": "11:45", "course": "MFSM", "room": "CR02", "occurrences": 1}, {"slot": 3, "start": "12:00", "end": "13:30", "course": "MFSM", "room": "CR02", "occurrences": 1}], "Monday": [{"slot": 2, "start": "10:15", "end": "11:45", "course": "MC-A", "room": "CR05", "occurrences": 8}, {"slot": 3, "start": "12:00", "end": "13:30", "course": "FD-B", "room": "CR06", "occurrences": 10}], "Friday": [{"slot": 3, "start": "12:00", "end": "13:30", "course": "CSG-B", "room": "CR02", "occurrences": 9}, {"slot": 4, "start": "14:30", "end": "16:00", "course": "MC-A", "room": "CR05", "occurrences": 2}], "Saturday": [{"slot": 3, "start": "12:00", "end": "13:30", "course": "CSG-B", "room": "CR02", "occurrences": 1}, {"slot": 4, "start": "14:30", "end": "16:00", "course": "BDMDM-A", "room": "CR06", "occurrences": 1}]};
+const WEEKDAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const NUTRITION_DB = {"Tarri Poha": [250, 5], "Sewai Upma": [220, 6], "Idli & Medu Vada": [300, 8], "Mix Veg Paratha": [260, 6], "Uttapam": [220, 6], "Masala Puri and Aloo Sabzi": [350, 8], "Masala Dosa": [300, 7], "Pyaaz, Bareek Sev, Lemon": [40, 1], "Coconut chutney": [60, 1], "Sambhar & Coconut Chutney": [90, 3], "Sambar & Coconut Chutney": [90, 3], "Coriander Chutney": [20, 0], "Tomato Chutney": [30, 0], "Veg Sandwich": [220, 6], "Chick Peas Salad": [180, 9], "Sprouts": [120, 8], "Corn Sandwich": [200, 6], "Coleslaw Sandwich": [220, 5], "Malai Kofta Gravy": [280, 6], "Rajma": [180, 9], "Corn Palak": [150, 5], "Aloo Soya Gravy": [200, 10], "White Vatana": [170, 8], "Kathal do Pyaza": [160, 4], "Chana Masala": [200, 9], "Soya Chilli Dry": [180, 12], "Aloo Jeera": [140, 3], "Suran Masala Dry": [130, 3], "Mix Sprout Masala": [150, 9], "Mix Veg": [120, 4], "Aloo Parwal": [140, 3], "Veg Korma": [180, 5], "Arhar Dal": [130, 8], "Palak Dal": [130, 8], "Dal Fry": [150, 8], "Dal Makhani": [200, 9], "Dal Tadka": [140, 8], "Dalcha": [150, 8], "Plain Dal": [120, 7], "Dal Fry with Butter": [180, 8], "Dal Hareli": [140, 8], "Navaratna Dal": [160, 8], "Paneer Butter Masala": [280, 10], "Green Peas Rice": [220, 5], "Plain Rice": [200, 4], "Jeera Rice": [210, 4], "Dhaniya Rice": [210, 4], "Masala Bhat": [230, 5], "Fried Rice": [230, 5], "Mint Rice": [210, 4], "Roti": [160, 5], "Paratha": [220, 5], "Plain Curd": [60, 3], "Raita": [70, 3], "Bhel Puri": [200, 4], "Chilli Idli": [250, 6], "Punugulu": [220, 5], "Papdi Chat": [280, 6], "Red/White Sauce Pasta": [300, 8], "Vada Pav": [280, 6], "Samosa": [280, 5], "Pindi Chole": [200, 9], "Methi Matar Malai": [220, 7], "Chicken Tikka Masala": [280, 22], "Kadhai Veg Roasted": [150, 5], "Egg Kolhapuri": [220, 14], "Veg Keema Gravy": [200, 7], "Chicken Dum Biryani": [450, 25], "Honey Chilli Potato": [220, 3], "Mattar Gajjar": [100, 4], "Shahi Paneer": [250, 10], "Patta Gobhi Matar": [110, 4], "Paneer Kolhapuri": [260, 12], "Aloo Matar Tamatar": [140, 4], "Veg Biryani": [350, 8], "Fruit Custard": [150, 4], "Rice Kheer": [200, 5], "Rasagulla": [180, 4], "\u2014": [0, 0]};
+const CALORIE_TARGET = 2300;
+const PROTEIN_TARGET = 135;
+const SESSION_DETAILS = {"MC-A": {"1": {"topic": "Introduction to management consulting", "readings": ["\"Consulting is more than giving advice\" \u2014 AN Turner, HBR Sept-Oct 1982 (pg 1-10)", "\"To the brainy the spoils\" \u2014 The Economist, 2013", "Management Tools & Trends 2023 \u2014 Bain & Company"], "cases": []}, "2": {"topic": "Introduction to management consulting (contd.)", "readings": [], "cases": ["\"McKinsey and Company\" \u2014 JW Lorsch & K Durante [413109-PDF-ENG]"]}, "3": {"topic": "Types of consultancies, industry overview", "readings": ["Tavoletti et al. (2022) Business model innovation & digital transformation in global mgmt consulting firms \u2014 Eur J of Innovation Mgmt 25(6)", "Sandberg & Werr (2003) The three challenges of corporate consulting \u2014 MIT Sloan Mgmt Review"], "cases": ["\"Deloitte & Touche Consulting Group\" \u2014 D Upton & C Steinman [HBS 9-696-096]"]}, "4": {"topic": "Internals of a consulting firm", "readings": ["Birkinshaw & Lancefield (2023) How Professional Services Firms Dodged Disruption \u2014 MIT Sloan Mgmt Review 64(4), 34-39"], "cases": ["Staffing in Professional Service Firms [905026-PDF-ENG]"]}, "5": {"topic": "Consulting Process \u2014 structuring the engagement I", "readings": [], "cases": ["Planning in Professional Service Firms [903085-PDF-ENG]"]}, "6": {"topic": "Structuring the engagement I (contd.)", "readings": ["How do Management Consulting Teams Work", "How To Structure A Consulting Engagement", "A Short Guide to Pricing Your Services as a Consultant or Coach [H054IX-PDF-ENG]", "Visscher (2006) Capturing the competence of management consulting work \u2014 J of Workplace Learning 18(4), 248-260"], "cases": ["\"International Profit Associates\" \u2014 A Nanda, T DeLong, M Mullick [801397-PDF-ENG]"]}, "7": {"topic": "Consulting frameworks, tools and models", "readings": ["Frameworks for General Management and Operations Consulting [UV1456-PDF-ENG]", "What Professional Service Firms Must Do to Thrive [R2102G-PDF-ENG]", "Bronnenmayer, Wirtz & G\u00f6ttel (2016) Success factors of management consulting \u2014 Review of Managerial Science 10, 1-34"], "cases": []}, "8": {"topic": "Consulting from the client's perspective", "readings": ["How to choose and work with consultants \u2014 T Rodenhauser (Harvard Mgmt Update #U9809A)", "Considerations when selecting a consultant", "Sample Consultant Selection Criteria", "Selecting Consultants \u2014 profile of a competent consultant", "Six Criteria for Selecting a CSR Consultant \u2014 Forbes"], "cases": []}, "9": {"topic": "Consulting from client's perspective (contd.)", "readings": ["Motamedi (2017) A Framework To Evaluate Consulting Efforts"], "cases": []}, "10": {"topic": "Mid-course review and consulting progress discussions", "readings": [], "cases": []}, "11": {"topic": "Consulting Contract", "readings": ["Sample Consulting Agreement"], "cases": ["To be announced"]}, "12": {"topic": "Client Relationship Management", "readings": ["\"Client vs. Consultant: Fishbowl or Foxhole?\" \u2014 CF Easley Jr & CF Harding, J of Mgmt Consulting Nov 1999", "\"When consultants and clients clash\" \u2014 IF Kesner & S Fowler, HBR case study Nov-Dec 1997"], "cases": ["Managing the Client Portfolio [410139-PDF-ENG]"]}, "13": {"topic": "Consultancy skills", "readings": ["Using Hypothesis-Driven Thinking in Strategy Consulting [UV0991-PDF-ENG]"], "cases": ["Tim Keller at Katzenbach Partners LLC (HBS Case)"]}, "14": {"topic": "Knowledge management and the consulting business", "readings": ["Knowledge management and competition in the consulting industry [CMR144-PDF-ENG]", "\"Knowledge management in the wild\" \u2014 M Weeks, Business Horizons Nov-Dec 2004"], "cases": ["McKinsey & Company: Managing Knowledge and Learning \u2014 C Bartlett (HBR case 396357)"]}, "15": {"topic": "Managing a consulting organization", "readings": ["The Anatomy of a Consulting Firm \u2014 David Maister"], "cases": ["Infosys Consulting 2011-2022 \u2014 The Evolution Continues [SM358-PDF-ENG]"]}, "16": {"topic": "Consulting as a career", "readings": ["\"Consulting and you\" \u2014 Carol Harris, Consulting to Mgmt Mar 2001", "\"Consulting on the cusp of disruption\" \u2014 CM Christensen et al, HBR Oct 2013"], "cases": ["Tim Hertach at GL Consulting (A) [800153-PDF-ENG]"]}, "17": {"topic": "Consulting as a career (contd.)", "readings": [], "cases": ["The First Six Months: Launching a PSF Career [800373-PDF-ENG]", "What's Next After an MBA [W17101-PDF-ENG]"]}, "18": {"topic": "The future of management consulting", "readings": ["Cri\u0219an & Marincean (2023) The digital transformation of management consulting companies: a review \u2014 Info Systems and e-Business Mgmt 21(2), 415-436"], "cases": []}, "19": {"topic": "Group project presentations", "readings": [], "cases": []}, "20": {"topic": "Group project presentations (contd.) & course wrap-up", "readings": [], "cases": []}}, "BDMDM-A": {"1": {"topic": "Introduction to Data Mining: Data types and Measurements", "readings": ["Han, Pei & Kamber \u2014 Data Mining: Concepts and Techniques, Ch 1 & 2"], "cases": []}, "2": {"topic": "Data Preprocessing and Transformation", "readings": ["Textbook Ch 2"], "cases": []}, "3": {"topic": "Data Preprocessing and Transformation (contd.)", "readings": ["To be distributed in class by instructor"], "cases": []}, "4": {"topic": "Data Summarization and visualization using Power BI", "readings": ["\"Visualization that really works\" \u2014 Scott Berinato [R1606H-PDF-ENG]"], "cases": []}, "5": {"topic": "Intro to Unsupervised techniques: cluster analysis", "readings": ["Textbook Ch 10"], "cases": ["\"Cluster Analysis for Segmentation\" \u2014 Prof. Rajkumar Venkatesan [UV0745-PDF-ENG]"]}, "6": {"topic": "Hierarchical and DBSCAN Clustering algorithms", "readings": ["Textbook Ch 10"], "cases": []}, "7": {"topic": "Association rule mining for Recommendation Systems", "readings": ["Textbook Ch 6"], "cases": ["\"Customer Analytics at BigBasket \u2014 Product Recommendations\" \u2014 Paul Abhraham et al [IMB573-PDF-ENG]"]}, "8": {"topic": "Content-based similarity for Recommendation Systems", "readings": [], "cases": ["\"Customer Analytics at BigBasket \u2014 Product Recommendations\" [IMB573-PDF-ENG]"]}, "9": {"topic": "Linear Regression Model and Regularization", "readings": [], "cases": ["House Prices Dataset (given by instructor)"]}, "10": {"topic": "Logistic Regression (Classification)", "readings": ["Textbook Ch 8"], "cases": ["Predicting Customer Churn (given by instructor)"]}, "11": {"topic": "kNN and Decision Tree Classification Model", "readings": [], "cases": ["Predicting Personal Loan Acceptance by Retail Banking Customers (given by instructor)"]}, "12": {"topic": "Ensemble Models for classification", "readings": ["Textbook Ch 9"], "cases": ["Predicting and understanding employee churn using classification models (given by instructor)"]}, "13": {"topic": "Class imbalance problem in classification", "readings": ["\"Classification with class imbalance problem: a review\""], "cases": []}, "14": {"topic": "Neural Network Architecture", "readings": ["Artificial Neural Network: A Brief Overview", "An overview and comparative analysis of RNNs for Short Term Load Forecasting"], "cases": []}, "15": {"topic": "RNNs for time series forecasting", "readings": ["Recurrent Neural Networks for Time Series Forecasting: Current status and future directions"], "cases": ["Jennie Maze Limited: Enhancing Call Center Performance Using Predictive Analytics [BAB263-PDF-ENG]"]}, "16": {"topic": "Outlier Detection Techniques", "readings": ["Textbook Ch 12"], "cases": []}, "17": {"topic": "Outlier detection for fraud detection in banking transactions", "readings": [], "cases": ["\"Armacord Incorporated: Combatting Money-laundering Using Data Analytics\" [BAB260-PDF-ENG]"]}, "18": {"topic": "Fraud Detection for Insurance Industry", "readings": [], "cases": ["Insurance Fraud Claims Detection (given by instructor)"]}, "19": {"topic": "Course Wrap-up and Project Presentations", "readings": [], "cases": []}, "20": {"topic": "Course Wrap-up and Project Presentations (contd.)", "readings": [], "cases": []}}, "MFSM": {"1": {"topic": "Introduction to Indian Financial System", "readings": ["Textbook Ch 1 \u2014 Components: financial institutions, markets, instruments, banks, RBI, financial services; NBFCs: fund-based and non-fund-based"], "cases": []}, "2": {"topic": "Leasing \u2014 structure, types, accounting treatment", "readings": ["Textbook Ch 2 & 4"], "cases": []}, "3": {"topic": "Hire Purchase \u2014 vs Leasing, Lease-or-Hire-Purchase decision", "readings": ["Textbook Ch 5"], "cases": []}, "4": {"topic": "Receivables Financing \u2014 Factoring, Forfaiting, Bills Discounting", "readings": ["Textbook Ch 6 & 7"], "cases": []}, "5": {"topic": "Housing Finance \u2014 institutions, National Housing Bank, reverse mortgage", "readings": ["Textbook Ch 8", "Handout"], "cases": []}, "6": {"topic": "Insurance \u2014 concepts, IRDA, intermediaries, life & non-life", "readings": ["Textbook Ch 9"], "cases": []}, "7": {"topic": "Mutual Funds \u2014 concepts and organization", "readings": ["Textbook Ch 12"], "cases": []}, "8": {"topic": "Mutual Funds \u2014 types, risk and returns", "readings": ["Textbook Ch 12"], "cases": []}, "9": {"topic": "Venture Capital \u2014 stages, structure, sources, VC financing in India", "readings": ["Textbook Ch 10"], "cases": []}, "10": {"topic": "Merchant Banking and Investment Banking \u2014 Issue Management, Restructuring", "readings": ["Textbook Ch 13 & 14"], "cases": []}, "11": {"topic": "Credit Rating \u2014 agencies in India, IPO grading", "readings": ["Textbook Ch 17"], "cases": []}, "12": {"topic": "Custodial (Depository) & Stock Broking Services", "readings": ["Textbook Ch 16"], "cases": []}, "13": {"topic": "Money Market \u2014 link to monetary policy, liquidity tools", "readings": ["Saunders Ch 5"], "cases": []}, "14": {"topic": "Money Market instruments \u2014 T-bills, CP, CDs, CBLO", "readings": ["Saunders Ch 5", "Handout"], "cases": []}, "15": {"topic": "Debt Market \u2014 private/public bond markets, govt bonds", "readings": ["Saunders Ch 6 & 7", "www.rbi.org.in"], "cases": []}, "16": {"topic": "Capital Market \u2014 primary/secondary markets, book building, listing", "readings": ["Textbook Ch 13", "Saunders Ch 9"], "cases": []}, "17": {"topic": "Derivatives Markets and Foreign Exchange Market", "readings": ["Saunders Ch 10 & 8"], "cases": []}, "18": {"topic": "New Developments \u2014 Fintech, UPI", "readings": ["Handout"], "cases": []}, "19": {"topic": "Guest session 1", "readings": [], "cases": []}, "20": {"topic": "Guest session 2", "readings": [], "cases": []}}, "DDM-A": {"1": {"topic": "Introduction to Data-Driven Marketing", "readings": ["Implementing Marketing Analytics \u2014 Darden Business School [UV6816]", "A Resource-Allocation Perspective for Marketing Analytics \u2014 Darden [UV6783]"], "cases": ["Amazon Shopper Panel: Paying Customers for Their Data \u2014 HBS [521058-PDF-ENG]"]}, "2": {"topic": "Slicing & Dicing Marketing Data", "readings": ["Textbook Ch 1"], "cases": []}, "3": {"topic": "Summarizing Marketing Data", "readings": ["Textbook Ch 2 & 3"], "cases": []}, "4": {"topic": "Estimating Demand Curves & Pricing Decisions", "readings": ["Textbook Ch 4 & 7"], "cases": ["Serum Institute of India: COVID-19 Vaccine Pricing \u2014 Ivey [W20983-PDF-ENG]"]}, "5": {"topic": "Revenue Management", "readings": ["Textbook Ch 8", "How To Reap Higher Profits with Dynamic Pricing \u2014 MIT Sloan [#SMR254]"], "cases": ["Book Case"]}, "6": {"topic": "Conjoint Analysis", "readings": ["Textbook Ch 16", "A Practical Guide to Conjoint Analysis \u2014 Darden [UV0406]"], "cases": ["Book Case"]}, "7": {"topic": "Market Share Simulator", "readings": ["Textbook Ch 16"], "cases": ["Book Case"]}, "8": {"topic": "Customer Lifetime Value", "readings": ["Customer Lifetime Value (CLV) vs. Customer Lifetime Return on Investment (CLROI) [515049-PDF-ENG]"], "cases": ["Rosewood Hotels and Resorts: Branding to Increase Customer Profitability and Lifetime Value \u2014 HBS Brief Cases [2087-PDF-ENG]"]}, "9": {"topic": "Market Basket Analysis & Lift", "readings": ["Textbook Ch 29", "Aguinis, Forcum & Joo (2013) Using market basket analysis in mgmt research \u2014 J of Mgmt 39(7), 1799-1824"], "cases": ["To be provided during the session"]}, "10": {"topic": "RFM Analysis & Optimizing Direct Mail Campaigns", "readings": ["Textbook Ch 30", "How Direct Mail Delivers in the Age of Digital Marketing \u2014 MIT Sloan [SR0416]", "Mismanagement of Customer Loyalty \u2014 HBR [R0207F]"], "cases": ["Book Case"]}, "11": {"topic": "Planning Displays and Discounts", "readings": ["Textbook Ch 31", "Michis (2022) Retail distribution evaluation in brand-level sales response models \u2014 J of Marketing Analytics"], "cases": ["Book Case"]}, "12": {"topic": "Scheduling advertisements and resource allocation", "readings": ["Textbook Ch 32"], "cases": ["To be provided during the class"]}, "13": {"topic": "Estimating Sales & Optimizing Assortment in E-commerce", "readings": [], "cases": ["E-Commerce Analytics for CPG Firms (A)", "E-Commerce Analytics for CPG Firms (B)"]}, "14": {"topic": "Promotional tactics in E-Commerce", "readings": [], "cases": ["E-Commerce Analytics for CPG Firms (C)"]}, "15": {"topic": "Measuring the Effectiveness of Advertising - 1", "readings": ["Berry (2014) Time to take control? \u2014 J of Direct, Data and Digital Marketing Practice 16(2), 80-85"], "cases": ["Intel Asia-Pacific: The Catch & Win Campaign \u2014 Ivey [W13340-PDF-ENG]"]}, "16": {"topic": "Creating Ad Plans", "readings": [], "cases": ["TV Advertising Pricing at Regional Broadcast Network (A) \u2014 Darden [UV8868-PDF-ENG]"]}, "17": {"topic": "Networks & Tipping Point", "readings": ["Textbook Ch 42 & 43"], "cases": ["Book Case"]}, "18": {"topic": "Viral Marketing", "readings": ["Textbook Ch 44", "Hinz, Skiera, Barrot & Becker (2011) Seeding strategies for viral marketing \u2014 J of Marketing 75(6), 55-71"], "cases": ["Book Case"]}, "19": {"topic": "Guest Session \u2014 Marketing Analytics: The Industry Perspective", "readings": [], "cases": []}, "20": {"topic": "Group Presentations & Course Wrap-up", "readings": [], "cases": []}}, "FD-B": {"1": {"topic": "Derivatives: Introduction and Terminology", "readings": ["Hull & Basu \u2014 Ch 1: Introduction"], "cases": []}, "2": {"topic": "Forwards & Futures", "readings": ["Ch 2: Futures Markets and Central Counterparties"], "cases": []}, "3": {"topic": "Determination of Futures Prices", "readings": ["Ch 5: Determination of Forwards & Futures Prices"], "cases": []}, "4": {"topic": "Basis Risk, Hedging and Stock Index Futures", "readings": ["Ch 3: Hedging Strategies Using Futures"], "cases": []}, "5": {"topic": "Options \u2014 Basic Properties", "readings": ["Ch 10: Mechanics of Options Market"], "cases": []}, "6": {"topic": "Options Trading Strategies I", "readings": ["Ch 12: Trading strategies involving options"], "cases": []}, "7": {"topic": "Options Trading Strategies II", "readings": ["Ch 12: Trading strategies involving options"], "cases": []}, "8": {"topic": "Options Trading Strategies \u2014 Class Exercises", "readings": ["Ch 12: Trading strategies involving options"], "cases": []}, "9": {"topic": "No Arbitrage Bounds on Option Prices", "readings": ["Ch 11: Properties of stock options"], "cases": []}, "10": {"topic": "Early Exercise and Put-Call Parity", "readings": ["Ch 11: Properties of stock options"], "cases": []}, "11": {"topic": "Binomial Option Prices and Risk Neutral Probability", "readings": ["Ch 13: Binomial Trees"], "cases": []}, "12": {"topic": "Implementing Binomial Trees", "readings": ["Ch 13: Binomial Trees"], "cases": []}, "13": {"topic": "The Black-Scholes-Merton Option Pricing Formula", "readings": ["Ch 15: The Black-Scholes-Merton Model"], "cases": []}, "14": {"topic": "The Black-Scholes-Merton Option Pricing Formula (contd.)", "readings": ["Ch 15: The Black-Scholes-Merton Model"], "cases": []}, "15": {"topic": "Option Greeks, Dynamic Hedging and Volatility Trading", "readings": ["Ch 19: The Greek Letters"], "cases": []}, "16": {"topic": "Graphing Option Greeks", "readings": ["Ch 19: The Greek Letters"], "cases": []}, "17": {"topic": "Fundamentals of interest rates, Forward Rate Agreements and Swaps", "readings": ["Ch 29: Interest Rate Derivatives \u2014 standard market models"], "cases": []}, "18": {"topic": "Interest Rate Swaps & Currency Swaps", "readings": ["Ch 29: Interest Rate Derivatives \u2014 standard market models"], "cases": []}, "19": {"topic": "Choice of derivatives for Hedging risks", "readings": [], "cases": ["Case and exercise given in class"]}, "20": {"topic": "Choice of derivatives for Hedging risks (contd.)", "readings": [], "cases": ["Case and exercise given in class"]}}, "CSG-B": {"1": {"topic": "Ubiquity of Competition & Quest for Growth", "readings": ["Introduction: The Enduring Importance of Michael Porter's Work on Competition and Strategy [8887BC-PDF-ENG]"], "cases": []}, "2": {"topic": "Why Nations Compete", "readings": ["Michael Porter (1990) Competitive Advantage of Nations [90211-PDF-ENG]"], "cases": ["Ethiopia: An Emerging Market Opportunity? \u2014 HBR Short Case [9-915-501]"]}, "3": {"topic": "Framework for Competitor Analysis", "readings": ["Competitor Analysis: Anticipating Competitive Actions [701120-PDF-ENG]", "A Framework for Competitor Analysis (Book Chapter)"], "cases": ["GETWELL Pharmacy"]}, "4": {"topic": "Industry Structure Shaping Competition & Strategic Groups", "readings": ["Porter \u2014 Understanding Industry Structure [HBS 707493-PDF-ENG]"], "cases": ["Adolph Coors in the Brewing Industry [HBS 9-388-014]"]}, "5": {"topic": "Competition in Fragmented & Emerging Industries", "readings": ["Ghemawat (2002) Competition and Business Strategy in Historical Perspective [798010-PDF-ENG]"], "cases": ["Pharmeasy: Expansion Dilemma Amidst Regulatory Uncertainties [W20396-PDF-ENG]", "Groww: Growth Dilemma"]}, "6": {"topic": "Competition in Mature Industries", "readings": ["How to Compete in Stagnant Industries [79503-PDF-ENG]", "When to Ally and When to Acquire [R0407H-PDF-ENG]"], "cases": ["Lifetron Case"]}, "7": {"topic": "Fighting Competition \u2014 Ways to Fight & Choosing How to Compete", "readings": ["Curveball: Strategies to Fool the Competition [R0609G-PDF-ENG]", "Predicting Your Competitor's Reaction [R0904H-PDF-ENG]"], "cases": ["Funskool: Defend, Lead & Counter Rivals [W18239-PDF-ENG]"]}, "8": {"topic": "Fighting Competition \u2014 Niche as Competitive Strategy", "readings": ["Competition \u2014 The Right Mindset: Why Being Unique is Better than Being the Best (Porter) [8888BC-PDF-ENG]", "Blue Ocean Strategy: From Theory to Practice [CMR312-PDF-ENG]"], "cases": ["Str8bat Case"]}, "9": {"topic": "Stuck in the Middle \u2014 Differentiation Focus", "readings": ["Discovering New Points of Differentiation [97408-PDF-ENG]"], "cases": ["Haier: Taking a Chinese Company Global in 2011 [HBS 9-712-408-PDF-ENG]"]}, "10": {"topic": "Stuck in the Middle \u2014 Cost Focus", "readings": ["Strategies for Staying Cost Competitive \u2014 HBR 1984 [84117-PDF-ENG]"], "cases": ["Novozymes: Cracking the Emerging Market Code [HBS 9-112-084]"]}, "11": {"topic": "Collaborate & Compete", "readings": ["Collaborate with Your Competitors\u2014and Win [89104-PDF-ENG]"], "cases": ["Wintel (A): Cooperation or Conflict [HBS 9-704-419]"]}, "12": {"topic": "Disruptive Innovation as Source of Competitive Advantage", "readings": ["Christensen, Raynor & McDonald (2015) \"What is Disruptive Innovation?\" \u2014 HBR Dec, pp.44-53"], "cases": ["Video: \"The Hidden Weakness of Established Firms\""]}, "13": {"topic": "Value Co-Creation as Source of Competitive Advantage", "readings": ["The Future of Competition: Co-creating Unique Value with Customers \u2014 HBS Press (2004)"], "cases": ["Threadless.com"]}, "14": {"topic": "Business Model as a Source of Competitive Advantage", "readings": ["Amit & Zott (2012) Creating Value through Business Model Innovation \u2014 SMR"], "cases": ["Rent the Runway [812077-PDF-ENG]", "Sportz Village"]}, "15": {"topic": "Building Brand Competencies for Competitive Advantage", "readings": ["Building Brand Competencies for Competitive Advantage [BEP137-PDF-ENG]", "When Marketing is Strategy [R1312G-PDF-ENG]"], "cases": ["LetsShave Case: Product Centric vs Promotion Centric Approach [W26675-PDF-ENG]"]}, "16": {"topic": "Digital Competitive Strategies", "readings": ["How to Launch your Digital Platform \u2014 HBR April 2015 [R1504H-PDF-ENG]", "Competing on Platforms \u2014 Sloan Mgmt Review 2021"], "cases": ["Uber: Changing the Way the World Moves [316101-PDF-ENG]"]}, "17": {"topic": "Digital Competitive Strategies (contd.)", "readings": ["Pipelines, Platforms and the New Rules of Strategy \u2014 HBR April 2016 [R1604C-PDF-ENG]"], "cases": ["Netflix [HBS 607138-PDF-ENG]"]}, "18": {"topic": "Non-market Strategy", "readings": ["What Do We Mean by \"Strategy for Sustainability\"? [3414BC-PDF-ENG]", "Making Sustainability Count [R2005B-PDF-ENG]"], "cases": ["Unilever's New Global Strategy: Competing through Sustainability [916414-PDF-ENG]"]}, "19": {"topic": "Competitive Strategy in Action", "readings": ["The Godfather \u2014 Mario Puzo", "Campbell (1997) What is Wrong with Strategy? [97601-PDF-ENG]"], "cases": ["Film: The Godfather"]}, "20": {"topic": "Competitive Strategy in Action (contd.)", "readings": [], "cases": []}}};
+
+const COURSE_META = {
+  'MC-A':   {name:'Management Consulting', color:'var(--c-MCA)', soft:'var(--c-MCA-soft)'},
+  'BDMDM-A':{name:'Business Data Mining & Decision Models', color:'var(--c-BDMDMA)', soft:'var(--c-BDMDMA-soft)'},
+  'MFSM':   {name:'Mgmt of Financial Services & Markets', color:'var(--c-MFSM)', soft:'var(--c-MFSM-soft)'},
+  'DDM-A':  {name:'Data Driven Marketing', color:'var(--c-DDMA)', soft:'var(--c-DDMA-soft)'},
+  'FD-B':   {name:'Financial Derivatives', color:'var(--c-FDB)', soft:'var(--c-FDB-soft)'},
+  'CSG-B':  {name:'Competitive Strategy & Growth', color:'var(--c-CSGB)', soft:'var(--c-CSGB-soft)'},
+  'BDMDM-Tutorial': {name:'BDMDM Tutorial', color:'var(--c-BDMDMA)', soft:'var(--c-BDMDMA-soft)'},
+  'DDM-Tutorial': {name:'DDM Tutorial', color:'var(--c-DDMA)', soft:'var(--c-DDMA-soft)'},
+  'DDM-MidTermExam': {name:'DDM Mid Term Exam', color:'var(--c-DDMA)', soft:'var(--c-DDMA-soft)'},
+};
+
+const TRACKED_COURSES = ['MC-A','BDMDM-A','MFSM','DDM-A','FD-B','CSG-B'];
+
+let attendance = {}; // key: iso|slot|course -> 'P' | 'A'
+const STORAGE_KEY = 'tt-attendance-log';
+
+function todayISO(){
+  const d = new Date();
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function nowMinutes(){
+  const d = new Date();
+  return d.getHours()*60 + d.getMinutes();
+}
+function toMinutes(hhmm){
+  const [h,m] = hhmm.split(':').map(Number);
+  return h*60+m;
+}
+
+async function loadAttendance(){
+  if(FIREBASE_ENABLED && currentUser){
+    const remote = await remoteGet('attendance');
+    if(remote){ attendance = remote; return; }
+  }
+  try{
+    const res = await window.storage.get(STORAGE_KEY, false);
+    attendance = res && res.value ? JSON.parse(res.value) : {};
+  }catch(e){
+    attendance = {};
+  }
+}
+async function saveAttendance(){
+  if(FIREBASE_ENABLED && currentUser){
+    await remoteSet('attendance', attendance);
+    return;
+  }
+  try{
+    await window.storage.set(STORAGE_KEY, JSON.stringify(attendance), false);
+  }catch(e){
+    console.error('save failed', e);
+  }
+}
+
+function keyFor(s){ return `${s.iso}|${s.slot}|${s.course}`; }
+
+function getSessionDetail(course, sessionNo){
+  if(!sessionNo) return null;
+  const courseData = SESSION_DETAILS[course];
+  if(!courseData) return null;
+  return courseData[sessionNo] || null;
+}
+
+function renderPrepBlock(course, sessionNo, uid){
+  const detail = getSessionDetail(course, sessionNo);
+  if(!detail) return '';
+  const readings = detail.readings || [];
+  const cases = detail.cases || [];
+  const readingsHtml = readings.length ? `<div class="prep-label">Readings</div><ul class="prep-list">${readings.map(r=>`<li>${r}</li>`).join('')}</ul>` : '';
+  const casesHtml = cases.length ? `<div class="prep-label">Case(s)</div><ul class="prep-list">${cases.map(c=>`<li>${c}</li>`).join('')}</ul>` : '';
+  const nothing = (!readings.length && !cases.length) ? `<div class="prep-empty">No specific readings assigned — material/case given in class.</div>` : '';
+  return `
+    <div class="topic" onclick="togglePrep('${uid}')">📖 ${detail.topic} <span class="prep-toggle">▸ tap for readings</span></div>
+    <div class="prep-detail" id="prep-${uid}">
+      ${readingsHtml}${casesHtml}${nothing}
+    </div>`;
+}
+
+function togglePrep(uid){
+  const el = document.getElementById('prep-'+uid);
+  if(!el) return;
+  el.classList.toggle('open');
+}
+window.togglePrep = togglePrep;
+
+function fmtDateHead(iso){
+  const d = new Date(iso+'T00:00:00');
+  return d.toLocaleDateString('en-IN', {weekday:'short', day:'2-digit', month:'short'});
+}
+
+function renderBanner(){
+  const slot = document.getElementById('banner-slot');
+  const today = todayISO();
+  const nm = nowMinutes();
+  // find next upcoming session (today later, or future date)
+  let next = null;
+  for(const s of SESSIONS){
+    if(s.iso > today){ next = s; break; }
+    if(s.iso === today && toMinutes(s.start) > nm){ next = s; break; }
+  }
+  if(!next){
+    slot.innerHTML = `<div class="banner"><div class="tag">Term IV</div><div class="course-line">All sessions complete</div></div>`;
+    return;
+  }
+  const meta = COURSE_META[next.course] || {name:next.course};
+  const isToday = next.iso === today;
+  const tag = isToday ? 'Next up · today' : `Next up · ${fmtDateHead(next.iso)}`;
+  const detail = getSessionDetail(next.course, next.session_no);
+  slot.innerHTML = `
+    <div class="banner">
+      <div class="tag">${tag}</div>
+      <div class="course-line">${meta.name}</div>
+      <div class="meta-line">${next.start} – ${next.end} · ${next.room}${next.session_no ? ' · Session '+next.session_no : ''}</div>
+      ${detail ? `<div class="meta-line" style="margin-top:6px;opacity:0.9;">📖 ${detail.topic}</div>` : ''}
+    </div>`;
+}
+
+function groupByDate(sessions){
+  const map = {};
+  for(const s of sessions){
+    if(!map[s.iso]) map[s.iso] = [];
+    map[s.iso].push(s);
+  }
+  return map;
+}
+
+let showPastSchedule = false;
+
+function renderSchedule(){
+  const list = document.getElementById('schedule-list');
+  const grouped = groupByDate(SESSIONS);
+  const today = todayISO();
+  const allDates = Object.keys(grouped).sort();
+  const dates = showPastSchedule ? allDates : allDates.filter(iso => iso >= today);
+  const hiddenCount = allDates.length - dates.length;
+
+  let html = `<div style="margin:0 0 14px;">
+    <button id="toggle-past-btn" class="day-chip" style="width:100%;text-align:center;">
+      ${showPastSchedule ? '↑ Hide earlier weeks' : `↓ Show earlier weeks (${hiddenCount} days)`}
+    </button>
+  </div>`;
+
+  for(const iso of dates){
+    const sessions = grouped[iso].sort((a,b)=>a.slot-b.slot);
+    const isToday = iso === today;
+    const wk = sessions[0].week;
+    html += `<div class="date-group">
+      <div class="date-head ${isToday?'today':''}">
+        <span class="d">${fmtDateHead(iso)}</span>
+        <span class="w">Week ${wk}</span>
+      </div>`;
+    for(const s of sessions){
+      const meta = COURSE_META[s.course] || {name:s.course, color:'var(--muted)', soft:'#eee'};
+      const isExam = s.course.includes('MidTermExam');
+      const isPastSession = iso < today || (iso===today && toMinutes(s.end) < nowMinutes());
+      const k = keyFor(s);
+      const status = attendance[k];
+      const trackable = TRACKED_COURSES.includes(s.course);
+      const uid = `sched_${s.course}_${s.session_no}_${iso}_${s.slot}`;
+      html += `<div class="session-row ${isPastSession?'past':''}">
+        <div class="time-col">${s.start}<br><span class="end">${s.end}</span></div>
+        <span class="pill" style="background:${meta.soft};color:${meta.color}">${s.course}</span>
+        <div class="course-info">
+          <div class="name">${meta.name}</div>
+          <div class="room">${s.room}${s.session_no ? ' · #'+s.session_no : ''}</div>
+          ${renderPrepBlock(s.course, s.session_no, uid)}
+        </div>
+        ${trackable && !isExam ? `
+          <div class="stamp-group">
+            <button class="stamp p ${status==='P'?'on':''}" onclick="mark('${k}','P')">P</button>
+            <button class="stamp a ${status==='A'?'on':''}" onclick="mark('${k}','A')">A</button>
+          </div>` : (isExam ? `<span class="future-tag">exam</span>` : `<span class="future-tag">${isPastSession?'':'upcoming'}</span>`)}
+      </div>`;
+    }
+    html += `</div>`;
+  }
+  list.innerHTML = html;
+
+  document.getElementById('toggle-past-btn').addEventListener('click', ()=>{
+    showPastSchedule = !showPastSchedule;
+    renderSchedule();
+  });
+}
+
+async function mark(key, status){
+  if(attendance[key] === status){
+    delete attendance[key]; // toggle off
+  } else {
+    attendance[key] = status;
+  }
+  await saveAttendance();
+  renderSchedule();
+  renderAttendance();
+}
+window.mark = mark;
+
+function renderAttendance(){
+  const list = document.getElementById('attendance-list');
+  let html = '';
+  for(const course of TRACKED_COURSES){
+    const meta = COURSE_META[course];
+    const sessions = SESSIONS.filter(s=>s.course===course);
+    let present=0, absent=0;
+    for(const s of sessions){
+      const st = attendance[keyFor(s)];
+      if(st==='P') present++;
+      else if(st==='A') absent++;
+    }
+    const marked = present+absent;
+    const pct = marked>0 ? Math.round((present/marked)*100) : null;
+    const pctClass = pct===null ? '' : (pct>=75 ? 'good':'bad');
+    const barColor = pct===null ? 'var(--border)' : (pct>=75 ? 'var(--success)' : 'var(--danger)');
+    const barWidth = pct===null ? 0 : pct;
+    html += `<div class="attn-card">
+      <div class="attn-top">
+        <div>
+          <div class="attn-name">${meta.name}</div>
+          <div class="attn-code">${course} · ${sessions.length} sessions total</div>
+        </div>
+        <div class="attn-pct ${pctClass}">${pct===null?'—':pct+'%'}</div>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${barWidth}%;background:${barColor}"></div></div>
+      <div class="attn-meta">
+        <span>Present: ${present}</span>
+        <span>Absent: ${absent}</span>
+        <span>Unmarked: ${sessions.length-marked}</span>
+      </div>
+      <div class="threshold-note">Dashed line marks the 75% attendance floor</div>
+    </div>`;
+  }
+  list.innerHTML = html;
+}
+
+// ---- Wholesome combined view ----
+const DAY_ABBR_TO_FULL = {"Mon":"Monday","Tue":"Tuesday","Wed":"Wednesday","Thur":"Thursday","Fri":"Friday","Sat":"Saturday","Sun":"Sunday"};
+
+let showPastWholesome = false;
+
+function renderWholesome(){
+  const list = document.getElementById('wholesome-list');
+  const grouped = groupByDate(SESSIONS);
+  const today = todayISO();
+  const allDates = Object.keys(grouped).sort();
+  const dates = showPastWholesome ? allDates : allDates.filter(iso => iso >= today);
+  const hiddenCount = allDates.length - dates.length;
+  let html = `<div style="margin:0 16px 14px;">
+    <button id="toggle-past-wholesome-btn" class="day-chip" style="width:calc(100% - 0px);text-align:center;">
+      ${showPastWholesome ? '↑ Hide earlier weeks' : `↓ Show earlier weeks (${hiddenCount} days)`}
+    </button>
+  </div>`;
+  for(const iso of dates){
+    const sessions = grouped[iso].sort((a,b)=>a.slot-b.slot);
+    const isToday = iso === today;
+    const wk = sessions[0].week;
+    const fullDayName = DAY_ABBR_TO_FULL[sessions[0].day];
+    const menu = MESS_MENU[fullDayName];
+    html += `<div class="date-group">
+      <div class="date-head ${isToday?'today':''}">
+        <span class="d">${fmtDateHead(iso)}</span>
+        <span class="w">Week ${wk}</span>
+      </div>`;
+    if(menu){
+      html += `<div class="day-meal-strip">`;
+      for(const [mealName, items] of Object.entries(menu)){
+        const main = Object.values(items)[0];
+        html += `<span class="meal-chip">${mealName}: ${main}</span>`;
+      }
+      html += `</div>`;
+    }
+    for(const s of sessions){
+      const meta = COURSE_META[s.course] || {name:s.course, color:'var(--muted)', soft:'#eee'};
+      const uid = `whole_${s.course}_${s.session_no}_${iso}_${s.slot}`;
+      html += `<div class="session-row">
+        <div class="time-col">${s.start}<br><span class="end">${s.end}</span></div>
+        <span class="pill" style="background:${meta.soft};color:${meta.color}">${s.course}</span>
+        <div class="course-info">
+          <div class="name">${meta.name}</div>
+          <div class="room">${s.room}${s.session_no ? ' · #'+s.session_no : ''}</div>
+          ${renderPrepBlock(s.course, s.session_no, uid)}
+        </div>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+  list.innerHTML = html;
+  document.getElementById('toggle-past-wholesome-btn').addEventListener('click', ()=>{
+    showPastWholesome = !showPastWholesome;
+    renderWholesome();
+  });
+}
+let nutriDay = todayISO(); // tracked by actual date, resets daily
+let nutriLog = {}; // { "checked": {itemKey: true}, "eggs": n }
+const NUTRI_KEY_PREFIX = 'nutrition-log-';
+
+function nutriWeekdayName(iso){
+  const d = new Date(iso+'T00:00:00');
+  return WEEKDAYS[(d.getDay()+6)%7];
+}
+
+async function remoteGetNutritionDay(iso){
+  if(!(FIREBASE_ENABLED && currentUser)) return null;
+  const doc = await db.collection('users').doc(currentUser.uid).get();
+  if(!doc.exists) return null;
+  const all = doc.data().nutrition || {};
+  return all[iso] || null;
+}
+async function remoteSetNutritionDay(iso, value){
+  if(!(FIREBASE_ENABLED && currentUser)) return;
+  const field = `nutrition.${iso}`;
+  await db.collection('users').doc(currentUser.uid).set({[field]: value}, {merge:true});
+}
+async function remoteGetAllNutrition(){
+  if(!(FIREBASE_ENABLED && currentUser)) return null;
+  const doc = await db.collection('users').doc(currentUser.uid).get();
+  if(!doc.exists) return null;
+  return doc.data().nutrition || {};
+}
+
+async function loadNutriLog(iso){
+  if(FIREBASE_ENABLED && currentUser){
+    const remote = await remoteGetNutritionDay(iso);
+    nutriLog = remote || {checked:{}, eggs:0};
+    return;
+  }
+  try{
+    const res = await window.storage.get(NUTRI_KEY_PREFIX+iso, false);
+    nutriLog = res && res.value ? JSON.parse(res.value) : {checked:{}, eggs:0};
+  }catch(e){
+    nutriLog = {checked:{}, eggs:0};
+  }
+}
+async function saveNutriLog(iso){
+  if(FIREBASE_ENABLED && currentUser){
+    await remoteSetNutritionDay(iso, nutriLog);
+    return;
+  }
+  try{
+    await window.storage.set(NUTRI_KEY_PREFIX+iso, JSON.stringify(nutriLog), false);
+  }catch(e){ console.error('nutri save failed', e); }
+}
+
+function renderNutriDaySelector(){
+  const sel = document.getElementById('nutri-day-selector');
+  // show last 7 days as date chips, ending today
+  const chips = [];
+  const base = new Date();
+  const todayIso = todayISO();
+  for(let i=6;i>=0;i--){
+    const d = new Date(base);
+    d.setDate(base.getDate()-i);
+    const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+    const iso = `${y}-${m}-${day}`;
+    const label = iso===todayIso ? 'Today' : d.toLocaleDateString('en-IN',{weekday:'short', day:'2-digit'});
+    chips.push({iso, label});
+  }
+  sel.innerHTML = chips.map(c =>
+    `<button class="day-chip ${c.iso===nutriDay?'active':''}" data-iso="${c.iso}">${c.label}</button>`
+  ).join('');
+  sel.querySelectorAll('.day-chip').forEach(chip=>{
+    chip.addEventListener('click', async ()=>{
+      nutriDay = chip.dataset.iso;
+      await loadNutriLog(nutriDay);
+      renderNutriDaySelector();
+      renderNutriLog();
+      renderNutriSummary();
+    });
+  });
+}
+
+const MEAL_TIME_RANGES = {
+  Breakfast: [420, 570],   // 07:00 - 09:30
+  Lunch:     [720, 870],   // 12:00 - 14:30
+  Snacks:    [990, 1080],  // 16:30 - 18:00
+  Dinner:    [1170, 1290], // 19:30 - 21:30
+};
+
+function getCurrentMealInfo(){
+  const nm = nowMinutes();
+  for(const [meal, [start,end]] of Object.entries(MEAL_TIME_RANGES)){
+    if(nm>=start && nm<=end) return {meal, active:true};
+  }
+  // find next upcoming meal today
+  let next=null;
+  for(const [meal, [start]] of Object.entries(MEAL_TIME_RANGES)){
+    if(start > nm){ next = meal; break; }
+  }
+  return {meal: next, active:false};
+}
+
+function fmtMinutes(m){
+  const h = Math.floor(m/60), mi = m%60;
+  const period = h>=12 ? 'PM':'AM';
+  const h12 = h%12===0?12:h%12;
+  return `${h12}:${String(mi).padStart(2,'0')} ${period}`;
+}
+
+function computeNutriTotals(){
+  let kcal=0, protein=0;
+  for(const key in nutriLog.checked){
+    if(!nutriLog.checked[key]) continue;
+    const itemName = key.split('::')[1];
+    const n = NUTRITION_DB[itemName];
+    if(n){ kcal += n[0]; protein += n[1]; }
+  }
+  const eggs = nutriLog.eggs || 0;
+  kcal += eggs*70;
+  protein += eggs*6;
+  return {kcal, protein};
+}
+
+function renderNutriSummary(){
+  const {kcal, protein} = computeNutriTotals();
+  const kcalPct = Math.min(100, Math.round((kcal/CALORIE_TARGET)*100));
+  const proteinPct = Math.min(100, Math.round((protein/PROTEIN_TARGET)*100));
+  const kcalOver = kcal > CALORIE_TARGET;
+  const proteinShort = protein < PROTEIN_TARGET;
+  const isTodaySelected = nutriDay === todayISO();
+  const dateObj = new Date(nutriDay+'T00:00:00');
+  const dateLabel = dateObj.toLocaleDateString('en-IN',{weekday:'long', day:'2-digit', month:'short'});
+
+  let mealNote = '';
+  if(isTodaySelected){
+    const {meal, active} = getCurrentMealInfo();
+    if(meal){
+      const [s,e] = MEAL_TIME_RANGES[meal];
+      mealNote = active
+        ? `<div class="nutri-label" style="margin-bottom:10px;color:var(--brass);">🍽 Right now: ${meal} (${fmtMinutes(s)}–${fmtMinutes(e)})</div>`
+        : `<div class="nutri-label" style="margin-bottom:10px;">Next meal: ${meal} at ${fmtMinutes(s)}</div>`;
+    } else {
+      mealNote = `<div class="nutri-label" style="margin-bottom:10px;">Mess service done for today</div>`;
+    }
+  }
+
+  document.getElementById('nutri-summary').innerHTML = `
+    <div class="nutri-summary">
+      <div style="font-family:'Fraunces',serif;font-size:15px;font-weight:600;margin-bottom:10px;">
+        ${isTodaySelected?'Today · ':''}${dateLabel}
+      </div>
+      ${mealNote}
+      <div class="nutri-row">
+        <span class="nutri-label">Calories</span>
+        <span class="nutri-value ${kcalOver?'over':''}">${kcal} <span class="of">/ ${CALORIE_TARGET} kcal</span></span>
+      </div>
+      <div class="nutri-bar-track"><div class="nutri-bar-fill" style="width:${kcalPct}%;background:${kcalOver?'#E8A9A9':'#8FBFA3'}"></div></div>
+      <div class="nutri-row" style="margin-top:14px;">
+        <span class="nutri-label">Protein</span>
+        <span class="nutri-value">${protein}g <span class="of">/ ${PROTEIN_TARGET}g</span></span>
+      </div>
+      <div class="nutri-bar-track"><div class="nutri-bar-fill" style="width:${proteinPct}%;background:${proteinShort?'#E0C079':'#8FBFA3'}"></div></div>
+    </div>`;
+}
+
+function foodItemRow(mealName, catName, itemName, isEgg){
+  const key = `${mealName}-${catName}::${itemName}`;
+  if(itemName === '—') return '';
+  const n = NUTRITION_DB[itemName] || [0,0];
+  if(isEgg){
+    const count = nutriLog.eggs || 0;
+    return `<div class="food-item">
+      <div class="food-name">${itemName} <span class="food-macro">(70kcal/6g per egg)</span></div>
+      <div class="egg-stepper">
+        <button class="egg-btn" onclick="adjustEggs(-1)">−</button>
+        <span class="egg-count">${count}</span>
+        <button class="egg-btn" onclick="adjustEggs(1)">+</button>
+      </div>
+    </div>`;
+  }
+  const checked = !!nutriLog.checked[key];
+  return `<div class="food-item">
+    <button class="food-check ${checked?'on':''}" onclick="toggleFoodItem('${key.replace(/'/g,"\\'")}')">${checked?'✓':''}</button>
+    <div class="food-name">${itemName}</div>
+    <div class="food-macro">${n[0]} kcal · ${n[1]}g P</div>
+  </div>`;
+}
+
+function renderNutriLog(){
+  const wd = nutriWeekdayName(nutriDay);
+  const menu = MESS_MENU[wd];
+  const list = document.getElementById('nutri-log');
+  if(!menu){ list.innerHTML = ''; return; }
+  const isTodaySelected = nutriDay === todayISO();
+  const {meal: currentMeal} = isTodaySelected ? getCurrentMealInfo() : {meal:null};
+  let html = '';
+  for(const [mealName, cats] of Object.entries(menu)){
+    const isCurrent = mealName === currentMeal;
+    html += `<div class="section-label" id="${isCurrent?'current-meal-section':''}" style="${isCurrent?'color:var(--brass);':''}">${mealName}${isCurrent?' <span class="note">← now</span>':''}</div>`;
+    for(const [catName, itemName] of Object.entries(cats)){
+      const isEgg = catName === 'Egg' || itemName.includes('Boiled / Omelette');
+      html += foodItemRow(mealName, catName, itemName, isEgg);
+    }
+  }
+  list.innerHTML = html;
+
+  const currentSection = document.getElementById('current-meal-section');
+  if(currentSection){
+    setTimeout(()=> currentSection.scrollIntoView({block:'start', behavior:'smooth'}), 100);
+  }
+}
+
+async function toggleFoodItem(key){
+  nutriLog.checked[key] = !nutriLog.checked[key];
+  await saveNutriLog(nutriDay);
+  renderNutriLog();
+  renderNutriSummary();
+}
+window.toggleFoodItem = toggleFoodItem;
+
+async function adjustEggs(delta){
+  nutriLog.eggs = Math.max(0, (nutriLog.eggs||0) + delta);
+  await saveNutriLog(nutriDay);
+  renderNutriLog();
+  renderNutriSummary();
+}
+window.adjustEggs = adjustEggs;
+
+// ---- Insights tab ----
+function computeAttendanceInsight(course){
+  const sessions = SESSIONS.filter(s=>s.course===course);
+  const total = sessions.length;
+  let present=0, absent=0;
+  for(const s of sessions){
+    const st = attendance[keyFor(s)];
+    if(st==='P') present++;
+    else if(st==='A') absent++;
+  }
+  const marked = present+absent;
+  const pct = marked>0 ? Math.round((present/marked)*100) : null;
+  const floorNeeded = Math.ceil(total*0.75); // e.g. 15 of 20
+  const stillNeeded = Math.max(0, floorNeeded - present);
+  const remainingSessions = total - marked;
+  let status, message;
+  if(marked===0){
+    status = 'watch';
+    message = `No attendance marked yet. Mark past sessions in Schedule to track this.`;
+  } else if(stillNeeded === 0){
+    status = 'safe';
+    message = `You're safely past the 75% floor (need ${floorNeeded}/${total}, have ${present}).`;
+  } else if(stillNeeded <= remainingSessions){
+    status = (pct>=75) ? 'safe' : 'watch';
+    message = `Attend ${stillNeeded} of the remaining ${remainingSessions} sessions to stay at/above 75%.`;
+  } else {
+    status = 'critical';
+    message = `Even with perfect attendance from here, you can reach at most ${present+remainingSessions}/${total} (${Math.round(((present+remainingSessions)/total)*100)}%) — below the 75% floor. Talk to the instructor.`;
+  }
+  return {course, present, absent, marked, total, pct, status, message};
+}
+
+function computeKcalProtein(parsed){
+  let kcal=0, protein=0;
+  for(const k in (parsed.checked||{})){
+    if(!parsed.checked[k]) continue;
+    const itemName = k.split('::')[1];
+    const n = NUTRITION_DB[itemName];
+    if(n){ kcal+=n[0]; protein+=n[1]; }
+  }
+  const eggs = parsed.eggs||0;
+  kcal += eggs*70; protein += eggs*6;
+  return {kcal, protein};
+}
+
+async function loadAllNutritionLogs(){
+  if(FIREBASE_ENABLED && currentUser){
+    const all = await remoteGetAllNutrition();
+    if(!all) return [];
+    const logs = Object.keys(all).map(iso=>{
+      const {kcal, protein} = computeKcalProtein(all[iso]);
+      return {iso, kcal, protein};
+    });
+    logs.sort((a,b)=> a.iso.localeCompare(b.iso));
+    return logs;
+  }
+  try{
+    const listRes = await window.storage.list(NUTRI_KEY_PREFIX, false);
+    if(!listRes || !listRes.keys) return [];
+    const logs = [];
+    for(const key of listRes.keys){
+      try{
+        const res = await window.storage.get(key, false);
+        if(res && res.value){
+          const parsed = JSON.parse(res.value);
+          const iso = key.replace(NUTRI_KEY_PREFIX, '');
+          const {kcal, protein} = computeKcalProtein(parsed);
+          logs.push({iso, kcal, protein});
+        }
+      }catch(e){}
+    }
+    logs.sort((a,b)=> a.iso.localeCompare(b.iso));
+    return logs;
+  }catch(e){
+    return [];
+  }
+}
+
+async function renderInsights(){
+  const container = document.getElementById('insights-list');
+  container.innerHTML = `<div class="empty-note">Loading insights…</div>`;
+
+  // Attendance insights
+  const attnInsights = TRACKED_COURSES.map(computeAttendanceInsight);
+  const badgeClass = {safe:'badge-safe', watch:'badge-watch', critical:'badge-critical'};
+  const badgeLabel = {safe:'Safe', watch:'Watch', critical:'Critical'};
+
+  let html = `<div class="insight-card"><h3>Attendance Health</h3>`;
+  for(const ins of attnInsights){
+    html += `<div class="insight-row">
+      <div>
+        <div class="insight-course">${ins.course}</div>
+        <div class="insight-detail">${ins.message}</div>
+      </div>
+      <span class="insight-badge ${badgeClass[ins.status]}">${ins.pct===null?'—':ins.pct+'%'} · ${badgeLabel[ins.status]}</span>
+    </div>`;
+  }
+  const criticalCount = attnInsights.filter(i=>i.status==='critical').length;
+  const watchCount = attnInsights.filter(i=>i.status==='watch').length;
+  html += `<div class="insight-msg">${
+    criticalCount>0 ? `${criticalCount} course(s) at real risk of breaching the 75% floor — prioritize those sessions.`
+    : watchCount>0 ? `${watchCount} course(s) need consistent attendance from here to stay safe.`
+    : `All tracked courses are in good shape. Keep marking attendance so this stays accurate.`
+  }</div>`;
+  html += `</div>`;
+
+  container.innerHTML = html;
+
+  // Nutrition insights (async — loads all logged days)
+  const logs = await loadAllNutritionLogs();
+  let nutriHtml = `<div class="insight-card"><h3>Nutrition Trends</h3>`;
+  if(logs.length===0){
+    nutriHtml += `<div class="empty-note">No nutrition entries logged yet. Check off meals in the Nutrition tab to build this up.</div>`;
+  } else {
+    const avgKcal = Math.round(logs.reduce((a,l)=>a+l.kcal,0)/logs.length);
+    const avgProtein = Math.round(logs.reduce((a,l)=>a+l.protein,0)/logs.length);
+    const daysHitProtein = logs.filter(l=>l.protein>=PROTEIN_TARGET).length;
+    const daysOverCalorie = logs.filter(l=>l.kcal>CALORIE_TARGET).length;
+    const proteinGapAvg = Math.round(PROTEIN_TARGET - avgProtein);
+
+    nutriHtml += `<div class="insight-stat-row">
+      <div class="insight-stat"><div class="num">${avgKcal}</div><div class="lbl">Avg kcal/day</div></div>
+      <div class="insight-stat"><div class="num">${avgProtein}g</div><div class="lbl">Avg protein/day</div></div>
+      <div class="insight-stat"><div class="num">${logs.length}</div><div class="lbl">Days logged</div></div>
+    </div>`;
+
+    let msg = '';
+    if(proteinGapAvg > 10){
+      msg += `You're averaging ${proteinGapAvg}g under your ${PROTEIN_TARGET}g protein target — that's roughly ${Math.round(proteinGapAvg/6)} eggs short daily. `;
+    } else if(avgProtein >= PROTEIN_TARGET){
+      msg += `Protein target is being met on average — nice work. `;
+    } else {
+      msg += `You're close to your protein target, only ${proteinGapAvg}g short on average. `;
+    }
+    if(daysOverCalorie > logs.length/2){
+      msg += `You've gone over your calorie target on ${daysOverCalorie}/${logs.length} logged days — worth checking portion sizes on gravies and rice.`;
+    } else {
+      msg += `Calorie intake has stayed within target on most logged days.`;
+    }
+    nutriHtml += `<div class="insight-msg">${msg}</div>`;
+    nutriHtml += `<div class="insight-detail" style="margin-top:8px;">Hit protein target on ${daysHitProtein}/${logs.length} logged days.</div>`;
+  }
+  nutriHtml += `</div>`;
+
+  container.innerHTML = html + nutriHtml;
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.view+'-view').classList.add('active');
+    if(btn.dataset.view === 'insights'){
+      renderInsights();
+    }
+  });
+});
+
+async function loadAndRenderAll(){
+  await loadAttendance();
+  renderBanner();
+  renderSchedule();
+  renderAttendance();
+  renderWholesome();
+  await loadNutriLog(nutriDay);
+  renderNutriDaySelector();
+  renderNutriLog();
+  renderNutriSummary();
+}
+
+async function initAfterAuth(){
+  // called whenever sign-in state changes to a signed-in user
+  await loadAndRenderAll();
+}
+
+(async function init(){
+  initFirebase();
+  await trySyncFromSheets();
+  await loadAndRenderAll();
+})();
+</script>
+</body>
+</html>
